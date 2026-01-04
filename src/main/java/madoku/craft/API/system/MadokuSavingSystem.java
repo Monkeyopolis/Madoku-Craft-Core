@@ -11,6 +11,8 @@ import com.google.gson.JsonParser;
 import madoku.craft.API.MadokuCraftAPI;
 
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.util.WorldSavePath;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +37,37 @@ public final class MadokuSavingSystem {
 	}
 
 	public static MadokuData load(String featureId, JsonObject defaults) {
-		Path path = resolvePath(featureId);
+		return loadForPath(featureId, defaults, null);
+	}
+
+	public static MadokuData loadForWorld(MinecraftServer server, String featureId, JsonObject defaults) {
+		if (server == null) {
+			return load(featureId, defaults);
+		}
+		Path worldRoot = server.getSavePath(WorldSavePath.ROOT);
+		return loadForPath(featureId, defaults, worldRoot);
+	}
+
+	public static void reloadForWorld(MadokuData data, String featureId, JsonObject defaults, MinecraftServer server) {
+		if (data == null || server == null) {
+			return;
+		}
+		Path worldRoot = server.getSavePath(WorldSavePath.ROOT);
+		if (worldRoot == null) {
+			return;
+		}
+		Path path = resolvePath(featureId, worldRoot);
+		JsonObject diskJson = prepareJson(path, defaults, featureId);
+		data.replace(path, diskJson);
+	}
+
+	private static MadokuData loadForPath(String featureId, JsonObject defaults, Path baseDir) {
+		Path path = resolvePath(featureId, baseDir);
+		JsonObject diskJson = prepareJson(path, defaults, featureId);
+		return new MadokuData(featureId, path, diskJson);
+	}
+
+	private static JsonObject prepareJson(Path path, JsonObject defaults, String featureId) {
 		createParent(path);
 		JsonObject diskJson = readJson(path);
 		boolean created = diskJson == null;
@@ -51,7 +83,7 @@ public final class MadokuSavingSystem {
 			writeJson(path, diskJson);
 		}
 
-		return new MadokuData(featureId, path, diskJson);
+		return diskJson;
 	}
 
 	private static JsonObject readJson(Path path) {
@@ -120,22 +152,22 @@ public final class MadokuSavingSystem {
 		}
 	}
 
-	private static Path resolvePath(String featureId) {
+	private static Path resolvePath(String featureId, Path baseDir) {
 		String sanitized = featureId == null ? "feature" : featureId;
 		sanitized = sanitized.replaceAll("[^a-zA-Z0-9_-]", "_").toLowerCase();
 		if (sanitized.isEmpty()) {
 			sanitized = "feature";
 		}
 
-		Path gameDir = FabricLoader.getInstance().getGameDir();
-		return gameDir.resolve("madoku-data").resolve(sanitized + ".json");
+		Path root = baseDir != null ? baseDir : FabricLoader.getInstance().getGameDir();
+		return root.resolve("madoku-data").resolve(sanitized + ".json");
 	}
 
 	/** Represents an open, mutable Madoku Data file. */
 	public static final class MadokuData {
 		private final String featureId;
-		private final Path path;
-		private final JsonObject root;
+		private Path path;
+		private JsonObject root;
 
 		private MadokuData(String featureId, Path path, JsonObject root) {
 			this.featureId = featureId;
@@ -155,6 +187,11 @@ public final class MadokuSavingSystem {
 			ensureLabel(root);
 			writeJson(path, root);
 			LOGGER.info("Madoku Data {} saved to {}", featureId, path);
+		}
+
+		private void replace(Path path, JsonObject root) {
+			this.path = path;
+			this.root = root;
 		}
 	}
 }

@@ -6,6 +6,7 @@ import madoku.craft.API.system.JsonFeatureSystem;
 import madoku.craft.API.system.MadokuSavingSystem;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +30,11 @@ public class MadokuCraftAPI implements ModInitializer {
 
 		API_DATA = MadokuSavingSystem.load("madoku_craft_api_data", buildSavingDefaults());
 		LOGGER.info("Madoku Data ready at {}", API_DATA.getPath());
+
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			MadokuSavingSystem.reloadForWorld(API_DATA, "madoku_craft_api_data", buildSavingDefaults(), server);
+			LOGGER.info("Madoku Data moved to {}", API_DATA.getPath());
+		});
 	}
 
 	private static JsonObject buildDefaults() {
