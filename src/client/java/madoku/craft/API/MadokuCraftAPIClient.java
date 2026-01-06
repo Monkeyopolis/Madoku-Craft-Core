@@ -2,9 +2,11 @@ package madoku.craft.API;
 
 import net.fabricmc.api.ClientModInitializer;
 
+import madoku.craft.API.system.MadokuClientTickSystem;
+
 public class MadokuCraftAPIClient implements ClientModInitializer {
 	@Override
 	public void onInitializeClient() {
-		// This entrypoint is suitable for setting up client-specific logic, such as rendering.
+		MadokuClientTickSystem.init();
 	}
 }

@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 
 import madoku.craft.API.system.JsonFeatureSystem;
 import madoku.craft.API.system.MadokuSavingSystem;
+import madoku.craft.API.system.MadokuTickSystem;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -24,16 +25,18 @@ public class MadokuCraftAPI implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		MadokuTickSystem.init();
+
 		JsonObject defaults = buildDefaults();
 		API_FEATURE = JsonFeatureSystem.loadFeature("madoku_craft_api", defaults);
 		LOGGER.info("JSON feature system ready at {}", API_FEATURE.getPath());
 
-		API_DATA = MadokuSavingSystem.load("madoku_craft_api_data", buildSavingDefaults());
-		LOGGER.info("Madoku Data ready at {}", API_DATA.getPath());
+		API_DATA = MadokuSavingSystem.loadDeferred("madoku_craft_api_data", buildSavingDefaults());
+		LOGGER.info("Madoku Data ready for world-scoped storage.");
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuSavingSystem.reloadForWorld(API_DATA, "madoku_craft_api_data", buildSavingDefaults(), server);
-			LOGGER.info("Madoku Data moved to {}", API_DATA.getPath());
+			LOGGER.info("Madoku Data ready at {}", API_DATA.getPath());
 		});
 	}
 
