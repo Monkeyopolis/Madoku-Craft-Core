@@ -1,6 +1,6 @@
 # Madoku Craft API
 
-Madoku Craft API is fabric library mod that bridges all Madoku Craft mods together.
+Madoku Craft API is a fabric library mod that all Madoku Craft mods require to function.
 
 Features:
 
