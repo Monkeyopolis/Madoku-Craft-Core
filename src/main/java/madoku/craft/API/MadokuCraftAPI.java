@@ -3,6 +3,7 @@ package madoku.craft.API;
 import com.google.gson.JsonObject;
 
 import madoku.craft.API.system.JsonFeatureSystem;
+import madoku.craft.API.system.MadokuDeathSystem;
 import madoku.craft.API.system.MadokuSavingSystem;
 import madoku.craft.API.system.MadokuTickSystem;
 
@@ -26,6 +27,7 @@ public class MadokuCraftAPI implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		MadokuTickSystem.init();
+		MadokuDeathSystem.init();
 
 		JsonObject defaults = buildDefaults();
 		API_FEATURE = JsonFeatureSystem.loadFeature("madoku_craft_api", defaults);

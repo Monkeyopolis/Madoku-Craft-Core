@@ -14,3 +14,6 @@ It can manage global and world specific data.
 - Dedicated TICK system.
 This system centralizes ticks into one hub.
 It allows a mod to hook into Minecraft's TICK system more consistently.
+
+- Dedicated death system.
+This system manages how a mod handles player deaths.
