@@ -1,13 +1,13 @@
 # Madoku Craft API
 
-Madoku Craft API is a fabric library MOD that all Madoku Craft MODs require to function.
+Madoku Craft API is a fabric library MOD that Madoku Craft MODs require to function.
 
 Features:
 
 - Dedicated JSON file system.
 This system manages how a MOD's JSON files are created, updated, and deleted.
 
-- Dedicated data system.
+- Dedicated Data system.
 This system manages how a MOD saves and loads data.
 It can manage global and world specific data.
 
@@ -17,6 +17,3 @@ It allows a MOD to hook into Minecraft's TICK system more consistently.
 
 - Dedicated death system.
 This system manages how a MOD handles player deaths.
-
-- Dedicated naming system.
-This system manages the naming scheme for files created by MODs using the API.
