@@ -23,7 +23,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /** Centralized JSON file manager for Madoku Craft API integrations. */
 public final class MadokuJSONSystem {
@@ -32,8 +34,16 @@ public final class MadokuJSONSystem {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuCraftAPI.MOD_ID);
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 	private static final String ROOT_FOLDER = "madoku-craft";
+	private static final String MADOKU_PREFIX = "madoku-craft.";
+	private static final String MADOKU_FILE_PREFIX = "madoku-";
+	private static final String MADOKU_PREFIX_UNDERSCORE_DOT = "madoku_craft.";
+	private static final String MADOKU_PREFIX_DASH = "madoku-craft-";
+	private static final String MADOKU_PREFIX_UNDERSCORE = "madoku_craft_";
 	private static final String VERSION_FIELD = "version";
 	private static final String DEFAULT_VERSION = "0.0.0";
+	private static final String DEFAULT_SCOPED_FALLBACK = "unknown";
+	private static final String DEFAULT_FILE_FALLBACK = "file";
+	private static final Set<String> ACRONYMS = Set.of("api", "json", "ui", "hud", "gui");
 
 	private MadokuJSONSystem() {
 	}
@@ -44,7 +54,6 @@ public final class MadokuJSONSystem {
 	 */
 	public static ManagedJSON load(String folderPath, String fileName, JsonObject defaults) {
 		Path path = resolvePath(folderPath, fileName);
-		MadokuMigrationSystem.migrateJsonIfNeeded(path, folderPath, fileName);
 		createParent(path);
 
 		JsonObject defaultTemplate = deepCopy(defaults);
@@ -176,7 +185,7 @@ public final class MadokuJSONSystem {
 
 	private static Path resolveFolderPath(String folderPath) {
 		Path resolved = getRootDirectory();
-		List<String> segments = MadokuNamingSystem.scopedPathSegments(folderPath);
+		List<String> segments = scopedPathSegments(folderPath);
 		for (String segment : segments) {
 			resolved = resolved.resolve(segment);
 		}
@@ -184,7 +193,157 @@ public final class MadokuJSONSystem {
 	}
 
 	private static String sanitizeFileName(String fileName) {
-		return MadokuNamingSystem.jsonFileBaseName(fileName);
+		return normalizeFlatFileBaseName(fileName);
+	}
+
+	static String normalizeFlatFileBaseName(String rawName) {
+		String normalized = rawName == null ? "" : rawName.trim();
+		if (normalized.toLowerCase(Locale.ROOT).endsWith(".json")) {
+			normalized = normalized.substring(0, normalized.length() - ".json".length());
+		}
+		return flatFileName(normalized.isBlank() ? DEFAULT_FILE_FALLBACK : normalized);
+	}
+
+	private static List<String> scopedPathSegments(String rawPath) {
+		List<String> segments = new ArrayList<>();
+		if (rawPath == null || rawPath.isBlank()) {
+			segments.add(scopedName(DEFAULT_SCOPED_FALLBACK));
+			return segments;
+		}
+
+		String normalizedPath = rawPath.replace('\\', '/');
+		for (String piece : normalizedPath.split("/+")) {
+			if (!piece.isBlank()) {
+				segments.add(scopedName(piece));
+			}
+		}
+
+		if (segments.isEmpty()) {
+			segments.add(scopedName(DEFAULT_SCOPED_FALLBACK));
+		}
+		return segments;
+	}
+
+	private static String scopedName(String rawName) {
+		String withoutPrefix = stripPrefix(rawName);
+		String normalized = normalizeScopedBody(withoutPrefix, DEFAULT_SCOPED_FALLBACK);
+		return MADOKU_PREFIX + normalized;
+	}
+
+	private static String flatFileName(String rawName) {
+		String withoutPrefix = stripPrefix(rawName);
+		String normalized = normalizeFlatBody(withoutPrefix, DEFAULT_FILE_FALLBACK);
+		return MADOKU_FILE_PREFIX + normalized;
+	}
+
+	private static String stripPrefix(String rawName) {
+		String normalized = rawName == null ? "" : rawName.trim();
+		String lower = normalized.toLowerCase(Locale.ROOT);
+		boolean changed;
+		do {
+			changed = false;
+			if (lower.startsWith(MADOKU_PREFIX)) {
+				normalized = normalized.substring(MADOKU_PREFIX.length());
+				changed = true;
+			} else if (lower.startsWith(MADOKU_PREFIX_UNDERSCORE_DOT)) {
+				normalized = normalized.substring(MADOKU_PREFIX_UNDERSCORE_DOT.length());
+				changed = true;
+			} else if (lower.startsWith(MADOKU_PREFIX_DASH)) {
+				normalized = normalized.substring(MADOKU_PREFIX_DASH.length());
+				changed = true;
+			} else if (lower.startsWith(MADOKU_PREFIX_UNDERSCORE)) {
+				normalized = normalized.substring(MADOKU_PREFIX_UNDERSCORE.length());
+				changed = true;
+			}
+			if (changed) {
+				lower = normalized.toLowerCase(Locale.ROOT);
+			}
+		} while (changed);
+		if (normalized.isBlank()) {
+			return DEFAULT_SCOPED_FALLBACK;
+		}
+		return normalized;
+	}
+
+	private static String normalizeScopedBody(String raw, String fallback) {
+		String value = raw == null ? "" : raw.trim();
+		value = value.replaceAll("[^A-Za-z0-9.-]+", "-");
+		value = value.replaceAll("-{2,}", "-");
+		value = value.replaceAll("\\.+", ".");
+		value = value.replaceAll("^[.-]+|[.-]+$", "");
+		if (value.isEmpty()) {
+			value = fallback;
+		}
+
+		List<String> dotParts = new ArrayList<>();
+		for (String dotPart : value.split("\\.")) {
+			String cleaned = normalizeDashPiece(dotPart);
+			if (!cleaned.isEmpty()) {
+				dotParts.add(cleaned);
+			}
+		}
+
+		if (dotParts.isEmpty()) {
+			return fallback;
+		}
+		return String.join(".", dotParts);
+	}
+
+	private static String normalizeFlatBody(String raw, String fallback) {
+		String value = raw == null ? "" : raw.trim();
+		value = value.toLowerCase(Locale.ROOT);
+		value = value.replaceAll("[^a-z0-9]+", "-");
+		value = value.replaceAll("-{2,}", "-");
+		value = value.replaceAll("^-+|-+$", "");
+		if (value.startsWith(MADOKU_FILE_PREFIX)) {
+			value = value.substring(MADOKU_FILE_PREFIX.length());
+		}
+		if (value.isEmpty()) {
+			value = fallback;
+		}
+		return value;
+	}
+
+	private static String normalizeDashPiece(String raw) {
+		String piece = raw == null ? "" : raw.trim();
+		piece = piece.replaceAll("[^A-Za-z0-9-]+", "-");
+		piece = piece.replaceAll("-{2,}", "-");
+		piece = piece.replaceAll("^-+|-+$", "");
+		if (piece.isEmpty()) {
+			return "";
+		}
+
+		List<String> parts = new ArrayList<>();
+		for (String token : piece.split("-+")) {
+			if (token.isEmpty()) {
+				continue;
+			}
+			String lower = token.toLowerCase(Locale.ROOT);
+			if (ACRONYMS.contains(lower)) {
+				parts.add(lower.toUpperCase(Locale.ROOT));
+			} else if (isExplicitUpperToken(token)) {
+				parts.add(token.toUpperCase(Locale.ROOT));
+			} else {
+				parts.add(lower);
+			}
+		}
+		return String.join("-", parts);
+	}
+
+	private static boolean isExplicitUpperToken(String token) {
+		if (token == null || token.isEmpty()) {
+			return false;
+		}
+		boolean hasLetter = false;
+		for (char ch : token.toCharArray()) {
+			if (Character.isLetter(ch)) {
+				hasLetter = true;
+				if (!Character.isUpperCase(ch)) {
+					return false;
+				}
+			}
+		}
+		return hasLetter;
 	}
 
 	public static final class ManagedJSON {

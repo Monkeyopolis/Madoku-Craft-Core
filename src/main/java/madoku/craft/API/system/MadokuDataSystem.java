@@ -118,8 +118,6 @@ public final class MadokuDataSystem {
 			return;
 		}
 		Path path = resolvePath(dataName, StorageScope.WORLD, worldRoot);
-		Path base = resolveBasePath(StorageScope.WORLD, worldRoot);
-		MadokuMigrationSystem.migrateDataIfNeeded(path, dataName, base);
 		JsonObject template = buildTemplate(defaults);
 		JsonObject diskJson = prepareJson(path, template, dataName, StorageScope.WORLD);
 		data.replace(path, diskJson, template);
@@ -150,9 +148,7 @@ public final class MadokuDataSystem {
 	}
 
 	private static MadokuData loadForPath(String dataName, StorageScope scope, JsonObject defaults, Path worldRoot) {
-		Path base = resolveBasePath(scope, worldRoot);
 		Path path = resolvePath(dataName, scope, worldRoot);
-		MadokuMigrationSystem.migrateDataIfNeeded(path, dataName, base);
 		JsonObject template = buildTemplate(defaults);
 		JsonObject diskJson = prepareJson(path, template, dataName, scope);
 		return new MadokuData(dataName, scope, path, diskJson, template, false);
@@ -269,7 +265,7 @@ public final class MadokuDataSystem {
 
 	private static Path resolvePath(String dataName, StorageScope scope, Path worldRoot) {
 		Path base = resolveBasePath(scope, worldRoot);
-		String fileBase = MadokuNamingSystem.jsonFileBaseName(dataName);
+		String fileBase = MadokuJSONSystem.normalizeFlatFileBaseName(dataName);
 		return base.resolve(ROOT_FOLDER).resolve(fileBase + ".json");
 	}
 

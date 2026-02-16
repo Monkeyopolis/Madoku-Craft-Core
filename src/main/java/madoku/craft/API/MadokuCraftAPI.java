@@ -5,7 +5,6 @@ import com.google.gson.JsonObject;
 import madoku.craft.API.system.MadokuDataSystem;
 import madoku.craft.API.system.MadokuDeathSystem;
 import madoku.craft.API.system.MadokuJSONSystem;
-import madoku.craft.API.system.MadokuNamingSystem;
 import madoku.craft.API.system.MadokuTickSystem;
 
 import net.fabricmc.api.ModInitializer;
@@ -16,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class MadokuCraftAPI implements ModInitializer {
 	public static final String MOD_ID = "madoku-craft-api";
+	private static final String API_ID = "API";
 
 	public static MadokuJSONSystem.ManagedJSON API_JSON;
 	public static MadokuDataSystem.MadokuData API_DATA;
@@ -31,17 +31,14 @@ public class MadokuCraftAPI implements ModInitializer {
 		MadokuDeathSystem.init();
 
 		JsonObject defaults = buildDefaults();
-		String systemsFolder = MadokuNamingSystem.scopedName("systems");
-		String apiFile = MadokuNamingSystem.scopedName("API");
-		API_JSON = MadokuJSONSystem.load(systemsFolder, apiFile, defaults);
+		API_JSON = MadokuJSONSystem.load(API_ID, API_ID, defaults);
 		LOGGER.info("{} ready at {}", MadokuJSONSystem.SYSTEM_NAME, API_JSON.getPath());
 
-		String apiDataName = MadokuNamingSystem.scopedName("API");
-		API_DATA = MadokuDataSystem.load(apiDataName, MadokuDataSystem.StorageScope.WORLD, buildSavingDefaults());
+		API_DATA = MadokuDataSystem.load(API_ID, MadokuDataSystem.StorageScope.WORLD, buildSavingDefaults());
 		LOGGER.info("{} prepared with {} scope.", MadokuDataSystem.SYSTEM_NAME, API_DATA.getScope());
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuDataSystem.bindWorld(API_DATA, apiDataName, buildSavingDefaults(), server);
+			MadokuDataSystem.bindWorld(API_DATA, API_ID, buildSavingDefaults(), server);
 			LOGGER.info("{} ready at {}", MadokuDataSystem.SYSTEM_NAME, API_DATA.getPath());
 		});
 	}

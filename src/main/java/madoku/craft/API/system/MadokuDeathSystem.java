@@ -37,9 +37,8 @@ public final class MadokuDeathSystem {
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuCraftAPI.MOD_ID);
-	private static final String JSON_FOLDER = MadokuNamingSystem.scopedName("systems");
-	private static final String JSON_FILE = MadokuNamingSystem.scopedName("death");
-	private static final String DATA_NAME = MadokuNamingSystem.scopedName("death");
+	private static final String JSON_FOLDER_ID = "API";
+	private static final String SYSTEM_ID = "death";
 	private static final String TOTALS_ENTRY = "totals";
 
 	private static final List<PlayerDeathHandler> DEATH_HANDLERS = new CopyOnWriteArrayList<>();
@@ -57,11 +56,11 @@ public final class MadokuDeathSystem {
 			return;
 		}
 		initialized = true;
-		systemJson = MadokuJSONSystem.load(JSON_FOLDER, JSON_FILE, buildJsonDefaults());
-		systemData = MadokuDataSystem.load(DATA_NAME, MadokuDataSystem.StorageScope.WORLD, buildDataDefaults());
+		systemJson = MadokuJSONSystem.load(JSON_FOLDER_ID, SYSTEM_ID, buildJsonDefaults());
+		systemData = MadokuDataSystem.load(SYSTEM_ID, MadokuDataSystem.StorageScope.WORLD, buildDataDefaults());
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuDataSystem.bindWorld(systemData, DATA_NAME, buildDataDefaults(), server);
+			MadokuDataSystem.bindWorld(systemData, SYSTEM_ID, buildDataDefaults(), server);
 			LOGGER.info("{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {

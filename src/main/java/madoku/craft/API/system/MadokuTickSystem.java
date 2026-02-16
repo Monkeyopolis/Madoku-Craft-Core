@@ -34,9 +34,8 @@ public final class MadokuTickSystem {
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuCraftAPI.MOD_ID);
-	private static final String JSON_FOLDER = MadokuNamingSystem.scopedName("systems");
-	private static final String JSON_FILE = MadokuNamingSystem.scopedName("TICK");
-	private static final String DATA_NAME = MadokuNamingSystem.scopedName("TICK");
+	private static final String JSON_FOLDER_ID = "API";
+	private static final String SYSTEM_ID = "TICK";
 	private static final String SERVER_ENTRY = "server";
 
 	private static final List<TickHandler> START_HANDLERS = new CopyOnWriteArrayList<>();
@@ -59,11 +58,11 @@ public final class MadokuTickSystem {
 		}
 		initialized = true;
 
-		systemJson = MadokuJSONSystem.load(JSON_FOLDER, JSON_FILE, buildJsonDefaults());
-		systemData = MadokuDataSystem.load(DATA_NAME, MadokuDataSystem.StorageScope.WORLD, buildDataDefaults());
+		systemJson = MadokuJSONSystem.load(JSON_FOLDER_ID, SYSTEM_ID, buildJsonDefaults());
+		systemData = MadokuDataSystem.load(SYSTEM_ID, MadokuDataSystem.StorageScope.WORLD, buildDataDefaults());
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuDataSystem.bindWorld(systemData, DATA_NAME, buildDataDefaults(), server);
+			MadokuDataSystem.bindWorld(systemData, SYSTEM_ID, buildDataDefaults(), server);
 			if (!systemData.isDeferred()) {
 				long starts = readLong(systemData.getRoot(), "serverStartCount", 0L) + 1L;
 				systemData.getRoot().addProperty("serverStartCount", starts);
