@@ -1,7 +1,11 @@
 package madoku.craft.API.system;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
 import madoku.craft.API.MadokuCraftAPI;
 
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
@@ -30,12 +34,19 @@ public final class MadokuTickSystem {
 	}
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuCraftAPI.MOD_ID);
+	private static final String JSON_FOLDER = MadokuNamingSystem.scopedName("systems");
+	private static final String JSON_FILE = MadokuNamingSystem.scopedName("TICK");
+	private static final String DATA_NAME = MadokuNamingSystem.scopedName("TICK");
+	private static final String SERVER_ENTRY = "server";
+
 	private static final List<TickHandler> START_HANDLERS = new CopyOnWriteArrayList<>();
 	private static final List<TickHandler> END_HANDLERS = new CopyOnWriteArrayList<>();
 	private static final List<PlayerTickHandler> START_PLAYER_HANDLERS = new CopyOnWriteArrayList<>();
 	private static final List<PlayerTickHandler> END_PLAYER_HANDLERS = new CopyOnWriteArrayList<>();
 	private static final List<IntervalTask> START_INTERVALS = new CopyOnWriteArrayList<>();
 	private static final List<IntervalTask> END_INTERVALS = new CopyOnWriteArrayList<>();
+	private static MadokuJSONSystem.ManagedJSON systemJson;
+	private static MadokuDataSystem.MadokuData systemData;
 	private static volatile boolean initialized;
 	private static long tickCount;
 
@@ -47,6 +58,20 @@ public final class MadokuTickSystem {
 			return;
 		}
 		initialized = true;
+
+		systemJson = MadokuJSONSystem.load(JSON_FOLDER, JSON_FILE, buildJsonDefaults());
+		systemData = MadokuDataSystem.load(DATA_NAME, MadokuDataSystem.StorageScope.WORLD, buildDataDefaults());
+
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			MadokuDataSystem.bindWorld(systemData, DATA_NAME, buildDataDefaults(), server);
+			if (!systemData.isDeferred()) {
+				long starts = readLong(systemData.getRoot(), "serverStartCount", 0L) + 1L;
+				systemData.getRoot().addProperty("serverStartCount", starts);
+			}
+			LOGGER.info("{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
+		});
+		ServerLifecycleEvents.SERVER_STOPPING.register(server -> saveSystemData(server));
+
 		ServerTickEvents.START_SERVER_TICK.register(MadokuTickSystem::onStartTick);
 		ServerTickEvents.END_SERVER_TICK.register(MadokuTickSystem::onEndTick);
 	}
@@ -78,6 +103,7 @@ public final class MadokuTickSystem {
 
 	private static void onStartTick(MinecraftServer server) {
 		tickCount++;
+		updateSystemData(server);
 		runHandlers(START_HANDLERS, server, Phase.START);
 		runPlayerHandlers(START_PLAYER_HANDLERS, server, Phase.START);
 		runIntervals(START_INTERVALS, server, Phase.START);
@@ -146,6 +172,77 @@ public final class MadokuTickSystem {
 				}
 			}
 		}
+	}
+
+	private static JsonObject buildJsonDefaults() {
+		JsonObject defaults = new JsonObject();
+		defaults.addProperty("enabled", true);
+		defaults.addProperty("saveIntervalTicks", 3600);
+		defaults.addProperty("trackOnlinePlayers", true);
+		return defaults;
+	}
+
+	private static JsonObject buildDataDefaults() {
+		JsonObject defaults = new JsonObject();
+		defaults.addProperty("tickCount", 0L);
+		defaults.addProperty("serverStartCount", 0L);
+		return defaults;
+	}
+
+	private static void updateSystemData(MinecraftServer server) {
+		if (server == null || systemData == null || systemData.isDeferred()) {
+			return;
+		}
+
+		JsonObject config = systemJson == null ? new JsonObject() : systemJson.getRoot();
+		if (!readBoolean(config, "enabled", true)) {
+			return;
+		}
+
+		systemData.getRoot().addProperty("tickCount", tickCount);
+
+		JsonObject serverEntry = systemData.entry(MadokuDataSystem.Tracker.ENTITIES, SERVER_ENTRY);
+		serverEntry.addProperty("tickCount", tickCount);
+		if (readBoolean(config, "trackOnlinePlayers", true)) {
+			serverEntry.addProperty("onlinePlayers", server.getPlayerManager().getCurrentPlayerCount());
+		}
+
+		int saveInterval = readInt(config, "saveIntervalTicks", 3600);
+		if (saveInterval > 0 && tickCount % saveInterval == 0) {
+			systemData.save();
+		}
+	}
+
+	private static void saveSystemData(MinecraftServer server) {
+		if (server == null || systemData == null || systemData.isDeferred()) {
+			return;
+		}
+		updateSystemData(server);
+		systemData.save();
+	}
+
+	private static int readInt(JsonObject root, String key, int fallback) {
+		JsonElement element = root.get(key);
+		if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+			return element.getAsInt();
+		}
+		return fallback;
+	}
+
+	private static long readLong(JsonObject root, String key, long fallback) {
+		JsonElement element = root.get(key);
+		if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()) {
+			return element.getAsLong();
+		}
+		return fallback;
+	}
+
+	private static boolean readBoolean(JsonObject root, String key, boolean fallback) {
+		JsonElement element = root.get(key);
+		if (element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean()) {
+			return element.getAsBoolean();
+		}
+		return fallback;
 	}
 
 	private static final class IntervalTask {

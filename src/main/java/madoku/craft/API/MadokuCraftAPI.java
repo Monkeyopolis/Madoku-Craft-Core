@@ -2,9 +2,10 @@ package madoku.craft.API;
 
 import com.google.gson.JsonObject;
 
-import madoku.craft.API.system.JsonFeatureSystem;
+import madoku.craft.API.system.MadokuDataSystem;
 import madoku.craft.API.system.MadokuDeathSystem;
-import madoku.craft.API.system.MadokuSavingSystem;
+import madoku.craft.API.system.MadokuJSONSystem;
+import madoku.craft.API.system.MadokuNamingSystem;
 import madoku.craft.API.system.MadokuTickSystem;
 
 import net.fabricmc.api.ModInitializer;
@@ -16,8 +17,8 @@ import org.slf4j.LoggerFactory;
 public class MadokuCraftAPI implements ModInitializer {
 	public static final String MOD_ID = "madoku-craft-api";
 
-	public static JsonFeatureSystem.ManagedFeature API_FEATURE;
-	public static MadokuSavingSystem.MadokuData API_DATA;
+	public static MadokuJSONSystem.ManagedJSON API_JSON;
+	public static MadokuDataSystem.MadokuData API_DATA;
 
 	// This logger is used to write text to the console and the log file.
 	// It is considered best practice to use your mod id as the logger's name.
@@ -30,15 +31,18 @@ public class MadokuCraftAPI implements ModInitializer {
 		MadokuDeathSystem.init();
 
 		JsonObject defaults = buildDefaults();
-		API_FEATURE = JsonFeatureSystem.loadFeature("madoku_craft_api", defaults);
-		LOGGER.info("JSON feature system ready at {}", API_FEATURE.getPath());
+		String systemsFolder = MadokuNamingSystem.scopedName("systems");
+		String apiFile = MadokuNamingSystem.scopedName("API");
+		API_JSON = MadokuJSONSystem.load(systemsFolder, apiFile, defaults);
+		LOGGER.info("{} ready at {}", MadokuJSONSystem.SYSTEM_NAME, API_JSON.getPath());
 
-		API_DATA = MadokuSavingSystem.loadDeferred("madoku_craft_api_data", buildSavingDefaults());
-		LOGGER.info("Madoku Data ready for world-scoped storage.");
+		String apiDataName = MadokuNamingSystem.scopedName("API");
+		API_DATA = MadokuDataSystem.load(apiDataName, MadokuDataSystem.StorageScope.WORLD, buildSavingDefaults());
+		LOGGER.info("{} prepared with {} scope.", MadokuDataSystem.SYSTEM_NAME, API_DATA.getScope());
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuSavingSystem.reloadForWorld(API_DATA, "madoku_craft_api_data", buildSavingDefaults(), server);
-			LOGGER.info("Madoku Data ready at {}", API_DATA.getPath());
+			MadokuDataSystem.bindWorld(API_DATA, apiDataName, buildSavingDefaults(), server);
+			LOGGER.info("{} ready at {}", MadokuDataSystem.SYSTEM_NAME, API_DATA.getPath());
 		});
 	}
 
