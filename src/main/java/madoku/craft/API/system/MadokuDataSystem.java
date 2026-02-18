@@ -159,7 +159,7 @@ public final class MadokuDataSystem {
 		JsonObject diskJson = readJson(path);
 		boolean created = diskJson == null;
 		if (created) {
-			LOGGER.info("Creating {} file {} at {} ({}).", SYSTEM_NAME, dataName, path, scope);
+			MadokuInfoDebugSystem.info(SYSTEM_NAME, "Creating file {} at {} ({})", dataName, path, scope);
 			diskJson = template.deepCopy();
 		}
 
@@ -413,7 +413,7 @@ public final class MadokuDataSystem {
 			mergeMissingDefaults(root, defaults);
 			root.addProperty(VERSION_FIELD, getApiVersion());
 			writeJson(path, root);
-			LOGGER.info("{} {} saved to {}", SYSTEM_NAME, dataName, path);
+			MadokuInfoDebugSystem.info(SYSTEM_NAME, "{} saved to {}", dataName, path);
 		}
 
 		private void replace(Path path, JsonObject root, JsonObject defaults) {

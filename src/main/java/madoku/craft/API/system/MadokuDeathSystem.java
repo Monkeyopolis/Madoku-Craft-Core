@@ -39,6 +39,7 @@ public final class MadokuDeathSystem {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuCraftAPI.MOD_ID);
 	private static final String JSON_FOLDER_ID = "API";
 	private static final String SYSTEM_ID = "death";
+	private static final String LOG_SOURCE = "DEATH";
 	private static final String TOTALS_ENTRY = "totals";
 
 	private static final List<PlayerDeathHandler> DEATH_HANDLERS = new CopyOnWriteArrayList<>();
@@ -61,7 +62,7 @@ public final class MadokuDeathSystem {
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuDataSystem.bindWorld(systemData, SYSTEM_ID, buildDataDefaults(), server);
-			LOGGER.info("{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
+			MadokuInfoDebugSystem.info(LOG_SOURCE, "{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
 			if (systemData != null && !systemData.isDeferred()) {

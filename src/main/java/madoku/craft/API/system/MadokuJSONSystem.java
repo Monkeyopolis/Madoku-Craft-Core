@@ -63,7 +63,7 @@ public final class MadokuJSONSystem {
 		if (root == null) {
 			root = deepCopy(defaultTemplate);
 			dirty = true;
-			LOGGER.info("Creating {} file at {}", SYSTEM_NAME, path);
+			MadokuInfoDebugSystem.info(SYSTEM_NAME, "Creating file at {}", path);
 		}
 
 		dirty |= reconcileStructure(root, defaultTemplate);
@@ -370,7 +370,7 @@ public final class MadokuJSONSystem {
 			reconcileStructure(root, defaults);
 			root.addProperty(VERSION_FIELD, getApiVersion());
 			writeJson(path, root);
-			LOGGER.info("{} saved {}", SYSTEM_NAME, path);
+			MadokuInfoDebugSystem.info(SYSTEM_NAME, "Saved {}", path);
 		}
 	}
 }

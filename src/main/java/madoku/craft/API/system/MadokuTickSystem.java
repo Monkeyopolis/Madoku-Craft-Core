@@ -67,7 +67,7 @@ public final class MadokuTickSystem {
 				long starts = readLong(systemData.getRoot(), "serverStartCount", 0L) + 1L;
 				systemData.getRoot().addProperty("serverStartCount", starts);
 			}
-			LOGGER.info("{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
+			MadokuInfoDebugSystem.info(SYSTEM_ID, "{} data ready at {}", MadokuDataSystem.SYSTEM_NAME, systemData.getPath());
 		});
 		ServerLifecycleEvents.SERVER_STOPPING.register(server -> saveSystemData(server));
 
