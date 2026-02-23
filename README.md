@@ -19,4 +19,5 @@ It allows a MOD to hook into Minecraft's TICK system more consistently.
 This system manages how a MOD handles player deaths.
 
 - Dedicated INFO debug system.
-This system adds a dedicated centralized debug system.
+This system centralizes INFO debugs into one hub.
+It allows a MOD to toggle debugs on and off without adjusting the code.

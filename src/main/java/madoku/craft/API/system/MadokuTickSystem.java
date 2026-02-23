@@ -14,6 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /** Centralized server tick hub for Madoku Craft mods. */
@@ -44,6 +48,9 @@ public final class MadokuTickSystem {
 	private static final List<PlayerTickHandler> END_PLAYER_HANDLERS = new CopyOnWriteArrayList<>();
 	private static final List<IntervalTask> START_INTERVALS = new CopyOnWriteArrayList<>();
 	private static final List<IntervalTask> END_INTERVALS = new CopyOnWriteArrayList<>();
+	private static final Queue<QueuedTask> QUEUE_TASKS = new ConcurrentLinkedQueue<>();
+	private static final Queue<ScheduledTask> SCHEDULED_TASKS = new ConcurrentLinkedQueue<>();
+	private static final Set<PendingTaskKey> PENDING_TASKS = ConcurrentHashMap.newKeySet();
 	private static MadokuJSONSystem.ManagedJSON systemJson;
 	private static MadokuDataSystem.MadokuData systemData;
 	private static volatile boolean initialized;
@@ -100,15 +107,36 @@ public final class MadokuTickSystem {
 		getIntervals(phase).add(new IntervalTask(intervalTicks, handler));
 	}
 
+	public static boolean enqueue(TickHandler handler) {
+		return enqueue(Phase.START, handler);
+	}
+
+	public static boolean enqueue(Phase phase, TickHandler handler) {
+		if (handler == null) {
+			return false;
+		}
+		Phase targetPhase = phase == null ? Phase.START : phase;
+		PendingTaskKey key = new PendingTaskKey(targetPhase, handler);
+		if (!PENDING_TASKS.add(key)) {
+			return false;
+		}
+		QUEUE_TASKS.add(new QueuedTask(key, tickCount + 1L));
+		return true;
+	}
+
 	private static void onStartTick(MinecraftServer server) {
 		tickCount++;
 		updateSystemData(server);
+		drainQueue(server, Phase.START);
+		runScheduled(server, Phase.START);
 		runHandlers(START_HANDLERS, server, Phase.START);
 		runPlayerHandlers(START_PLAYER_HANDLERS, server, Phase.START);
 		runIntervals(START_INTERVALS, server, Phase.START);
 	}
 
 	private static void onEndTick(MinecraftServer server) {
+		drainQueue(server, Phase.END);
+		runScheduled(server, Phase.END);
 		runHandlers(END_HANDLERS, server, Phase.END);
 		runPlayerHandlers(END_PLAYER_HANDLERS, server, Phase.END);
 		runIntervals(END_INTERVALS, server, Phase.END);
@@ -169,6 +197,48 @@ public final class MadokuTickSystem {
 				} catch (RuntimeException exc) {
 					LOGGER.warn("Interval tick handler failed during {} phase: {}", phase, task.handler.getClass().getName(), exc);
 				}
+			}
+		}
+	}
+
+	private static void drainQueue(MinecraftServer server, Phase phase) {
+		if (server == null || QUEUE_TASKS.isEmpty()) {
+			return;
+		}
+		int taskCount = QUEUE_TASKS.size();
+		for (int i = 0; i < taskCount; i++) {
+			QueuedTask task = QUEUE_TASKS.poll();
+			if (task == null) {
+				return;
+			}
+			if (task.key.phase != phase || tickCount < task.dispatchTick) {
+				QUEUE_TASKS.add(task);
+				continue;
+			}
+			SCHEDULED_TASKS.add(new ScheduledTask(task.key, tickCount + 1L));
+		}
+	}
+
+	private static void runScheduled(MinecraftServer server, Phase phase) {
+		if (server == null || SCHEDULED_TASKS.isEmpty()) {
+			return;
+		}
+		int taskCount = SCHEDULED_TASKS.size();
+		for (int i = 0; i < taskCount; i++) {
+			ScheduledTask task = SCHEDULED_TASKS.poll();
+			if (task == null) {
+				return;
+			}
+			if (task.key.phase != phase || tickCount < task.executionTick) {
+				SCHEDULED_TASKS.add(task);
+				continue;
+			}
+			try {
+				task.key.handler.onTick(server);
+			} catch (RuntimeException exc) {
+				LOGGER.warn("Scheduled tick handler failed during {} phase: {}", phase, task.key.handler.getClass().getName(), exc);
+			} finally {
+				PENDING_TASKS.remove(task.key);
 			}
 		}
 	}
@@ -261,6 +331,52 @@ public final class MadokuTickSystem {
 			}
 			nextTick = currentTick + interval;
 			return true;
+		}
+	}
+
+	private static final class PendingTaskKey {
+		private final Phase phase;
+		private final TickHandler handler;
+
+		private PendingTaskKey(Phase phase, TickHandler handler) {
+			this.phase = phase;
+			this.handler = handler;
+		}
+
+		@Override
+		public int hashCode() {
+			return 31 * phase.hashCode() + System.identityHashCode(handler);
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			}
+			if (!(obj instanceof PendingTaskKey other)) {
+				return false;
+			}
+			return phase == other.phase && handler == other.handler;
+		}
+	}
+
+	private static final class QueuedTask {
+		private final PendingTaskKey key;
+		private final long dispatchTick;
+
+		private QueuedTask(PendingTaskKey key, long dispatchTick) {
+			this.key = key;
+			this.dispatchTick = dispatchTick;
+		}
+	}
+
+	private static final class ScheduledTask {
+		private final PendingTaskKey key;
+		private final long executionTick;
+
+		private ScheduledTask(PendingTaskKey key, long executionTick) {
+			this.key = key;
+			this.executionTick = executionTick;
 		}
 	}
 }
