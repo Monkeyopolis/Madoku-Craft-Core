@@ -11,7 +11,7 @@ import madoku.craft.debug.MadokuDebug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.Level;
@@ -928,7 +928,7 @@ public final class MadokuScheduler {
 			return null;
 		}
 
-		Identifier location = Identifier.tryParse(levelId);
+		ResourceLocation location = ResourceLocation.tryParse(levelId);
 		if (location == null) {
 			return null;
 		}

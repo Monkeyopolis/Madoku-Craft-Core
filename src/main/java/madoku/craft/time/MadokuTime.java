@@ -9,7 +9,7 @@ import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.level.gamerules.GameRules;
+import net.minecraft.world.level.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -130,7 +130,7 @@ public final class MadokuTime {
 		}
 
 		for (ServerLevel world : server.getAllLevels()) {
-			world.getGameRules().set(GameRules.ADVANCE_TIME, false, server);
+			world.getGameRules().getRule(GameRules.RULE_DAYLIGHT).set(false, server);
 			world.setDayTime(absoluteDayTime);
 		}
 
@@ -329,7 +329,7 @@ public final class MadokuTime {
 		ServerLevel overworld = server.overworld();
 		int sleepingPercentage = overworld == null
 			? 100
-			: overworld.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
+			: overworld.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
 		if (sleepingPercentage > 100) {
 			return absoluteDayTime;
 		}
