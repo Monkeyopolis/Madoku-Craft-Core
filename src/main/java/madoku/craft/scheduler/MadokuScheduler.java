@@ -127,6 +127,18 @@ public final class MadokuScheduler {
 		return schedulerId;
 	}
 
+	public static String createOrGetScheduler(SchedulerOwner owner) {
+		if (owner == null) {
+			throw new IllegalArgumentException("Scheduler owner must not be null.");
+		}
+		SchedulerOwner normalizedOwner = owner.normalized();
+		SchedulerState existing = findSchedulerByOwner(normalizedOwner);
+		if (existing != null) {
+			return existing.schedulerId;
+		}
+		return createScheduler(normalizedOwner);
+	}
+
 	public static EnqueueStatus enqueue(
 		String schedulerId,
 		long delayTicks,
@@ -322,6 +334,32 @@ public final class MadokuScheduler {
 			return null;
 		}
 		return PENDING_SCHEDULERS.get(schedulerId);
+	}
+
+	private static SchedulerState findSchedulerByOwner(SchedulerOwner owner) {
+		for (SchedulerState scheduler : SCHEDULERS.values()) {
+			if (sameOwner(scheduler.owner, owner)) {
+				return scheduler;
+			}
+		}
+		for (SchedulerState scheduler : PENDING_SCHEDULERS.values()) {
+			if (sameOwner(scheduler.owner, owner)) {
+				return scheduler;
+			}
+		}
+		return null;
+	}
+
+	private static boolean sameOwner(SchedulerOwner left, SchedulerOwner right) {
+		if (left == right) {
+			return true;
+		}
+		if (left == null || right == null) {
+			return false;
+		}
+		return left.kind.equals(right.kind)
+			&& left.ownerId.equals(right.ownerId)
+			&& Objects.equals(left.levelId, right.levelId);
 	}
 
 	private static boolean shouldScanSchedulerThisTick(SchedulerState scheduler, long nowGameplay, long nowMadoku) {
@@ -581,6 +619,18 @@ public final class MadokuScheduler {
 			String normalizedOwnerId = normalizeOwnerId(ownerId);
 			String normalizedLevelId = normalizeLevelId(levelId);
 			return new SchedulerOwner(normalizedKind, normalizedOwnerId, normalizedLevelId);
+		}
+
+		public String getKind() {
+			return kind;
+		}
+
+		public String getOwnerId() {
+			return ownerId;
+		}
+
+		public String getLevelId() {
+			return levelId;
 		}
 
 		private SchedulerOwner normalized() {
@@ -930,6 +980,9 @@ public final class MadokuScheduler {
 
 		Identifier location = Identifier.tryParse(levelId);
 		if (location == null) {
+			location = Identifier.tryParse(normalizeLevelId(levelId));
+		}
+		if (location == null) {
 			return null;
 		}
 
@@ -949,12 +1002,39 @@ public final class MadokuScheduler {
 		return normalized;
 	}
 
+	public static String normalizeLevelIdentifier(String levelId) {
+		return normalizeLevelId(levelId);
+	}
+
 	private static String normalizeLevelId(String levelId) {
 		if (levelId == null) {
 			return null;
 		}
-		String normalized = levelId.trim();
+		String normalized = extractIdentifierFromLevelKey(levelId.trim());
 		return normalized.isEmpty() ? null : normalized;
+	}
+
+	private static String extractIdentifierFromLevelKey(String value) {
+		if (value == null) {
+			return "";
+		}
+		String trimmed = value.trim();
+		if (trimmed.isEmpty()) {
+			return "";
+		}
+		if (Identifier.tryParse(trimmed) != null) {
+			return trimmed;
+		}
+
+		int slashIndex = trimmed.lastIndexOf('/');
+		int closeBracketIndex = trimmed.lastIndexOf(']');
+		if (slashIndex >= 0 && closeBracketIndex > slashIndex) {
+			String candidate = trimmed.substring(slashIndex + 1, closeBracketIndex).trim();
+			if (Identifier.tryParse(candidate) != null) {
+				return candidate;
+			}
+		}
+		return trimmed;
 	}
 
 	private static UUID parseUuid(String value) {

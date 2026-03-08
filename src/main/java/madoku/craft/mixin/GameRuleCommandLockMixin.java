@@ -24,7 +24,7 @@ public abstract class GameRuleCommandLockMixin {
 		}
 
 		CommandSourceStack source = context.getSource();
-		source.sendFailure(Component.literal("Madoku Craft: API locked this gamerule."));
+		source.sendFailure(Component.literal("Madoku Craft locked this gamerule."));
 		cir.setReturnValue(0);
 	}
 }
