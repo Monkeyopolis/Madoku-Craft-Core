@@ -1,6 +1,7 @@
 package madoku.craft.mixin;
 
 import com.mojang.brigadier.context.CommandContext;
+import madoku.craft.time.MadokuTime;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.commands.GameRuleCommand;
@@ -19,7 +20,14 @@ public abstract class GameRuleCommandLockMixin {
 		GameRule<T> rule,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (rule != GameRules.ADVANCE_TIME) {
+		if (rule == GameRules.ADVANCE_TIME && !MadokuTime.isEnabled()) {
+			return;
+		}
+		if (rule == GameRules.PLAYERS_SLEEPING_PERCENTAGE && !MadokuTime.isEnabled()) {
+			return;
+		}
+		if (rule != GameRules.ADVANCE_TIME
+			&& rule != GameRules.PLAYERS_SLEEPING_PERCENTAGE) {
 			return;
 		}
 

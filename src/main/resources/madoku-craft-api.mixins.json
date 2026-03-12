@@ -3,7 +3,9 @@
   "package": "madoku.craft.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GameRuleCommandLockMixin"
+    "GameRuleCommandLockMixin",
+    "PlayerSleepTickMixin",
+    "ServerPlayerSleepTimeMixin"
   ],
   "injectors": {
     "defaultRequire": 1

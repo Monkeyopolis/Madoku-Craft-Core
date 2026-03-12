@@ -3,6 +3,7 @@ package madoku.craft.time;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import madoku.craft.clock.MadokuClock;
+import madoku.craft.clock.MadokuGameplayClock;
 import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.data.MadokuData;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
@@ -40,6 +41,8 @@ public final class MadokuTime {
 
 	private static volatile TimeSettings settings = TimeSettings.defaults();
 	private static boolean hasAppliedDayTime = false;
+	private static boolean hasAppliedManagedGameRules = false;
+	private static boolean hasRestoredVanillaGameRules = false;
 	private static long lastAppliedDayTime = 0L;
 	private static long lastAutosaveBucket = Long.MIN_VALUE;
 
@@ -52,6 +55,8 @@ public final class MadokuTime {
 
 	public static void reset() {
 		hasAppliedDayTime = false;
+		hasAppliedManagedGameRules = false;
+		hasRestoredVanillaGameRules = false;
 		lastAppliedDayTime = 0L;
 		lastAutosaveBucket = Long.MIN_VALUE;
 	}
@@ -106,6 +111,27 @@ public final class MadokuTime {
 
 	public static void update(MinecraftServer server) {
 		TimeSettings currentSettings = settings;
+		if (!currentSettings.enabled) {
+			if (!hasRestoredVanillaGameRules || hasAppliedManagedGameRules || hasAppliedDayTime) {
+				for (ServerLevel world : server.getAllLevels()) {
+					world.getGameRules().set(GameRules.ADVANCE_TIME, true, server);
+				}
+				hasRestoredVanillaGameRules = true;
+				hasAppliedManagedGameRules = false;
+			}
+			hasAppliedDayTime = false;
+			lastAppliedDayTime = 0L;
+			return;
+		}
+		if (!hasAppliedManagedGameRules) {
+			for (ServerLevel world : server.getAllLevels()) {
+				world.getGameRules().set(GameRules.ADVANCE_TIME, false, server);
+				world.getGameRules().set(GameRules.PLAYERS_SLEEPING_PERCENTAGE, 100, server);
+			}
+			hasAppliedManagedGameRules = true;
+			hasRestoredVanillaGameRules = false;
+		}
+
 		long sessionTicks = MadokuClock.getTicks();
 		long absoluteDayTime = getAbsoluteDayTime(sessionTicks, currentSettings);
 
@@ -122,15 +148,7 @@ public final class MadokuTime {
 			}
 		}
 
-		long sleepSkippedDayTime = applySleepSkipIfReady(server, absoluteDayTime, currentSettings);
-		if (sleepSkippedDayTime != absoluteDayTime) {
-			sessionTicks = getSessionTicks(sleepSkippedDayTime, currentSettings);
-			MadokuClock.setTicks(sessionTicks);
-			absoluteDayTime = sleepSkippedDayTime;
-		}
-
 		for (ServerLevel world : server.getAllLevels()) {
-			world.getGameRules().set(GameRules.ADVANCE_TIME, false, server);
 			world.setDayTime(absoluteDayTime);
 		}
 
@@ -198,7 +216,14 @@ public final class MadokuTime {
 	}
 
 	public static long getCurrentAbsoluteDayTime() {
+		if (!settings.enabled) {
+			return MadokuGameplayClock.getTicks();
+		}
 		return getAbsoluteDayTime(MadokuClock.getTicks(), settings);
+	}
+
+	public static boolean isEnabled() {
+		return settings.enabled;
 	}
 
 	public static long toAbsoluteDayTime(long day, int hour, int minute) {
@@ -294,84 +319,17 @@ public final class MadokuTime {
 		return value == null ? fallback : value;
 	}
 
-	private static long applySleepSkipIfReady(MinecraftServer server, long absoluteDayTime, TimeSettings timeSettings) {
-		int totalMinutes = getTotalMinutes(absoluteDayTime);
-		boolean isNight = !isWithinWrappedRange(
-			totalMinutes,
-			timeSettings.clockDayStartMinutes,
-			timeSettings.clockNightStartMinutes
-		);
-		if (!isNight) {
-			return absoluteDayTime;
+	private static boolean getBoolean(JsonObject object, String key, boolean fallback) {
+		if (object == null) {
+			return fallback;
 		}
 
-		int activePlayers = 0;
-		int sleepingPlayers = 0;
-		int fullySleptPlayers = 0;
-		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			if (player.isSpectator()) {
-				continue;
-			}
-
-			activePlayers++;
-			if (player.isSleeping()) {
-				sleepingPlayers++;
-				if (player.isSleepingLongEnough()) {
-					fullySleptPlayers++;
-				}
-			}
+		JsonElement element = object.get(key);
+		if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isBoolean()) {
+			return fallback;
 		}
 
-		if (activePlayers <= 0) {
-			return absoluteDayTime;
-		}
-
-		ServerLevel overworld = server.overworld();
-		int sleepingPercentage = overworld == null
-			? 100
-			: overworld.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
-		if (sleepingPercentage > 100) {
-			return absoluteDayTime;
-		}
-		int requiredSleepingPlayers = getRequiredSleepingPlayers(activePlayers, sleepingPercentage);
-		if (sleepingPlayers < requiredSleepingPlayers || fullySleptPlayers < requiredSleepingPlayers) {
-			return absoluteDayTime;
-		}
-
-		long nextDay = getDay(absoluteDayTime) + 1L;
-		long skipped = toAbsoluteDayTime(
-			nextDay,
-			timeSettings.clockDayStartMinutes / 60,
-			timeSettings.clockDayStartMinutes % 60
-		);
-
-		for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-			if (player.isSleeping()) {
-				player.stopSleepInBed(true, true);
-			}
-		}
-
-		return skipped;
-	}
-
-	private static int getRequiredSleepingPlayers(int activePlayers, int sleepingPercentage) {
-		if (activePlayers <= 0) {
-			return Integer.MAX_VALUE;
-		}
-
-		int normalizedPercentage = Math.max(0, Math.min(100, sleepingPercentage));
-		if (normalizedPercentage == 0) {
-			return 1;
-		}
-
-		long required = (long) Math.ceil((activePlayers * normalizedPercentage) / 100.0D);
-		if (required < 1L) {
-			return 1;
-		}
-		if (required > activePlayers) {
-			return activePlayers;
-		}
-		return (int) required;
+		return element.getAsBoolean();
 	}
 
 	private static long getSessionTicks(long absoluteDayTime, TimeSettings timeSettings) {
@@ -425,7 +383,7 @@ public final class MadokuTime {
 				timeSettings.clockNightStartMinutes % 60
 			);
 		}
-		// Keep `/time set <Nd>` and `/time set 0` on vanilla day boundaries.
+		// Keep `/time set <Nd>` on vanilla day boundaries.
 		// This preserves the expected day number semantics for command users.
 		if (timeOfDay == 0L && observedDayTime >= MINECRAFT_TICKS_PER_CYCLE) {
 			long plainAddOneDayTarget = previousAppliedDayTime + MINECRAFT_TICKS_PER_CYCLE;
@@ -524,8 +482,10 @@ public final class MadokuTime {
 			JsonObject cleaned = loaded.toConfigJson();
 			StaticJsonSystem.writeManagedFile(configFile, cleaned, defaults);
 			settings = loaded;
+			MadokuClock.setEnabled(loaded.enabled);
 		} catch (IOException | RuntimeException exception) {
 			settings = fallback;
+			MadokuClock.setEnabled(fallback.enabled);
 			LOGGER.error("Failed to load MadokuTime static config; using defaults.", exception);
 		}
 	}
@@ -595,6 +555,7 @@ public final class MadokuTime {
 	}
 
 	private static final class TimeSettings {
+		private final boolean enabled;
 		private final long realMinutesPerDay;
 		private final long realMinutesPerNight;
 		private final long serverTicksPerCycle;
@@ -611,12 +572,14 @@ public final class MadokuTime {
 		private final long minecraftTicksPerNight;
 
 		private TimeSettings(
+			boolean enabled,
 			long realMinutesPerDay,
 			long realMinutesPerNight,
 			int clockDayStartMinutes,
 			int clockNightStartMinutes,
 			int clockMidnightMinutes
 		) {
+			this.enabled = enabled;
 			this.realMinutesPerDay = realMinutesPerDay;
 			this.realMinutesPerNight = realMinutesPerNight;
 			this.clockDayStartMinutes = clockDayStartMinutes;
@@ -635,6 +598,7 @@ public final class MadokuTime {
 
 		private static TimeSettings defaults() {
 			return fromValues(
+				true,
 				DEFAULT_REAL_MINUTES_PER_DAY,
 				DEFAULT_REAL_MINUTES_PER_NIGHT,
 				DEFAULT_CLOCK_DAY_START_MINUTES,
@@ -644,6 +608,7 @@ public final class MadokuTime {
 		}
 
 		private static TimeSettings fromJson(JsonObject source) {
+			boolean enabled = getBoolean(source, "enabled", true);
 			long dayMinutes = sanitizePositive(
 				getLong(source, "real_minutes_per_day", DEFAULT_REAL_MINUTES_PER_DAY),
 				DEFAULT_REAL_MINUTES_PER_DAY
@@ -666,10 +631,11 @@ public final class MadokuTime {
 				DEFAULT_CLOCK_MIDNIGHT_MINUTES
 			);
 
-			return fromValues(dayMinutes, nightMinutes, dayStart, nightStart, midnight);
+			return fromValues(enabled, dayMinutes, nightMinutes, dayStart, nightStart, midnight);
 		}
 
 		private static TimeSettings fromValues(
+			boolean enabled,
 			long dayMinutesValue,
 			long nightMinutesValue,
 			int dayStartValue,
@@ -699,11 +665,12 @@ public final class MadokuTime {
 				midnight = wrappedMidpoint(nightStart, nightSpan);
 			}
 
-			return new TimeSettings(dayMinutes, nightMinutes, dayStart, nightStart, midnight);
+			return new TimeSettings(enabled, dayMinutes, nightMinutes, dayStart, nightStart, midnight);
 		}
 
 		private JsonObject toConfigJson() {
 			JsonObject root = new JsonObject();
+			root.addProperty("enabled", enabled);
 			root.addProperty("real_minutes_per_day", realMinutesPerDay);
 			root.addProperty("real_minutes_per_night", realMinutesPerNight);
 			root.addProperty("clock_day_start", formatClockMinutes(clockDayStartMinutes));

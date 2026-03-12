@@ -5,6 +5,7 @@ public final class MadokuClock {
 	public static final long SECONDS_PER_MINUTE = 60L;
 
 	private static long ticks = 0L;
+	private static volatile boolean enabled = true;
 
 	private MadokuClock() {
 	}
@@ -14,7 +15,7 @@ public final class MadokuClock {
 	}
 
 	public static void tick(long amount) {
-		if (amount <= 0L) {
+		if (!enabled || amount <= 0L) {
 			return;
 		}
 		ticks += amount;
@@ -25,10 +26,24 @@ public final class MadokuClock {
 	}
 
 	public static long getTicks() {
+		if (!enabled) {
+			return MadokuGameplayClock.getTicks();
+		}
 		return ticks;
 	}
 
 	public static void setTicks(long value) {
+		if (!enabled) {
+			return;
+		}
 		ticks = value;
+	}
+
+	public static void setEnabled(boolean value) {
+		enabled = value;
+	}
+
+	public static boolean isEnabled() {
+		return enabled;
 	}
 }
