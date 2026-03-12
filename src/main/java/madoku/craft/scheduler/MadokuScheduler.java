@@ -1346,4 +1346,3 @@ public final class MadokuScheduler {
 		RETRY
 	}
 }
-

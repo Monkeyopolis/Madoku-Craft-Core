@@ -1,6 +1,7 @@
 package madoku.craft.mixin;
 
 import com.mojang.brigadier.context.CommandContext;
+import madoku.craft.time.MadokuTime;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.commands.GameRuleCommand;
@@ -13,12 +14,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(GameRuleCommand.class)
 public abstract class GameRuleCommandLockMixin {
 	@Inject(method = "setRule", at = @At("HEAD"), cancellable = true)
-	private static <T> void madokuCraft$lockManagedGameRules(
+	private static void madokuCraft$lockManagedGameRules(
 		CommandContext<CommandSourceStack> context,
 		GameRules.Key<?> rule,
 		CallbackInfoReturnable<Integer> cir
 	) {
-		if (rule != GameRules.RULE_DAYLIGHT) {
+		if (rule == GameRules.RULE_DAYLIGHT && !MadokuTime.isEnabled()) {
+			return;
+		}
+		if (rule == GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE && !MadokuTime.isEnabled()) {
+			return;
+		}
+		if (rule != GameRules.RULE_DAYLIGHT
+			&& rule != GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE) {
 			return;
 		}
 
@@ -27,4 +35,3 @@ public abstract class GameRuleCommandLockMixin {
 		cir.setReturnValue(0);
 	}
 }
-

@@ -232,8 +232,9 @@ public final class MadokuDebug {
 
 		if (!anyEnabled) {
 			setDomainEnabled(Domain.SCHEDULER, true);
-			setDomainEnabled(Domain.CLOCK, true);
-			setDomainEnabled(Domain.WORLD, true);
+			setDomainEnabled(Domain.SLEEP, true);
+			setDomainEnabled(Domain.HEALTH, true);
+			setDomainEnabled(Domain.HUNGER, true);
 		}
 	}
 
@@ -259,8 +260,9 @@ public final class MadokuDebug {
 		root.addProperty("enabled", false);
 		JsonArray activeDomains = new JsonArray();
 		activeDomains.add(Domain.SCHEDULER.id());
-		activeDomains.add(Domain.CLOCK.id());
-		activeDomains.add(Domain.WORLD.id());
+		activeDomains.add(Domain.SLEEP.id());
+		activeDomains.add(Domain.HEALTH.id());
+		activeDomains.add(Domain.HUNGER.id());
 		root.add("active_domains", activeDomains);
 		root.add("disabled_metrics", new JsonArray());
 		return root;
@@ -339,8 +341,11 @@ public final class MadokuDebug {
 		UI("ui"),
 		SPAWNING("spawning"),
 		SCHEDULER("scheduler"),
+		HEALTH("health"),
+		HUNGER("hunger"),
 		NETWORK("network"),
 		CLOCK("clock"),
+		SLEEP("sleep"),
 		WORLD("world"),
 		OTHER("other");
 
@@ -374,8 +379,11 @@ public final class MadokuDebug {
 				case "ui" -> UI;
 				case "spawn", "spawning", "mob_spawning" -> SPAWNING;
 				case "scheduler", "schedulers" -> SCHEDULER;
+				case "health", "hp" -> HEALTH;
+				case "hunger", "food" -> HUNGER;
 				case "network", "net" -> NETWORK;
 				case "clock", "time_clock" -> CLOCK;
+				case "sleep", "sleeping" -> SLEEP;
 				case "world" -> WORLD;
 				case "other", "*" -> OTHER;
 				default -> null;
