@@ -49,10 +49,6 @@ public final class StaticJsonSystem {
 		return server.getWorldPath(LevelResource.ROOT).resolve(STORAGE_ROOT_FOLDER_NAME);
 	}
 
-	public static String getStorageRootFolderName() {
-		return STORAGE_ROOT_FOLDER_NAME;
-	}
-
 	public static Path getOrCreateGlobalSystemDirectory(String systemName) {
 		String normalizedName = systemName == null ? "" : systemName.trim();
 		if (normalizedName.isEmpty()) {
