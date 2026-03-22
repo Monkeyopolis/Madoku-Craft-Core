@@ -5,7 +5,9 @@
   "mixins": [
     "GameRuleCommandLockMixin",
     "PlayerSleepTickMixin",
-    "ServerPlayerSleepTimeMixin"
+    "ServerPlayerSleepTimeMixin",
+    "BiomeSeasonalPrecipitationMixin",
+    "ServerLevelSeasonalPrecipitationMixin"
   ],
   "injectors": {
     "defaultRequire": 1

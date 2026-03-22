@@ -24,7 +24,6 @@ import java.nio.file.Path;
 public final class StaticJsonSystem {
 	private static final Logger LOGGER = LoggerFactory.getLogger(StaticJsonSystem.class);
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().disableHtmlEscaping().create();
-	private static final String STORAGE_ROOT_FOLDER_NAME = "madoku-craft";
 	private static volatile String cachedModVersion;
 
 	private StaticJsonSystem() {
@@ -39,14 +38,14 @@ public final class StaticJsonSystem {
 	}
 
 	public static Path getGlobalRootDirectory() {
-		return FabricLoader.getInstance().getConfigDir().resolve(STORAGE_ROOT_FOLDER_NAME);
+		return FabricLoader.getInstance().getConfigDir().resolve(MadokuCraftAPI.MOD_ID);
 	}
 
 	public static Path getWorldRootDirectory(MinecraftServer server) {
 		if (server == null) {
 			throw new IllegalArgumentException("Server must not be null.");
 		}
-		return server.getWorldPath(LevelResource.ROOT).resolve(STORAGE_ROOT_FOLDER_NAME);
+		return server.getWorldPath(LevelResource.ROOT).resolve(MadokuCraftAPI.MOD_ID);
 	}
 
 	public static Path getOrCreateGlobalSystemDirectory(String systemName) {
