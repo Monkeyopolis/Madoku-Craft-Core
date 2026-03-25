@@ -22,3 +22,7 @@ It allows a MOD to toggle debugs on and off without adjusting the code.
 - Dedicated Clock system.
 This system creates a configurable time system.
 It ties all API systems together and allows users to change the time cycle.
+
+- Dedicated Season system.
+This system creates a configurable season system.
+It adds seasonal changes into a World and other systems.

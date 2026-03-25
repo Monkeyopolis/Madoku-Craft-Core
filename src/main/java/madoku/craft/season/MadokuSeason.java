@@ -2,7 +2,7 @@ package madoku.craft.season;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import madoku.craft.clock.MadokuClock;
+import madoku.craft.clock.MadokuTicks;
 import madoku.craft.config.StaticJsonSystem;
 import madoku.craft.data.MadokuData;
 import madoku.craft.debug.MadokuDebug;
@@ -116,7 +116,7 @@ public final class MadokuSeason {
 				}
 
 				loadPendingWaterWork(data);
-				lastAutosaveBucket = Math.floorDiv(MadokuClock.getTimeTicks(), AUTOSAVE_INTERVAL_TICKS);
+				lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
 			}
 
 	public static void autosavePersistedData(MinecraftServer server) {
@@ -124,7 +124,7 @@ public final class MadokuSeason {
 			return;
 		}
 
-		long bucket = Math.floorDiv(MadokuClock.getTimeTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long bucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
 		if (bucket != lastAutosaveBucket) {
 			lastAutosaveBucket = bucket;
 			savePersistedData(server);
@@ -144,27 +144,51 @@ public final class MadokuSeason {
 	}
 
 	public static SeasonState getCurrentState() {
-		return resolveCurrentState();
+		return resolveDisplayState();
+	}
+
+	public static SeasonState getCurrentState(ServerLevel world) {
+		return resolveCurrentState(world);
 	}
 
 	public static Season getCurrentSeason() {
 		return getCurrentState().season();
 	}
 
+	public static Season getCurrentSeason(ServerLevel world) {
+		return getCurrentState(world).season();
+	}
+
 	public static String getCurrentSeasonId() {
 		return getCurrentSeason().id;
+	}
+
+	public static String getCurrentSeasonId(ServerLevel world) {
+		return getCurrentSeason(world).id;
 	}
 
 	public static String getCurrentSeasonDisplayName() {
 		return capitalizeSeasonId(getCurrentSeasonId());
 	}
 
+	public static String getCurrentSeasonDisplayName(ServerLevel world) {
+		return capitalizeSeasonId(getCurrentSeasonId(world));
+	}
+
 	public static int getCurrentSeasonDay() {
 		return getCurrentState().seasonDay();
 	}
 
+	public static int getCurrentSeasonDay(ServerLevel world) {
+		return getCurrentState(world).seasonDay();
+	}
+
 	public static int getCurrentSeasonWeek() {
 		return getCurrentState().week();
+	}
+
+	public static int getCurrentSeasonWeek(ServerLevel world) {
+		return getCurrentState(world).week();
 	}
 
 	public static BiomeClimate resolveBiomeClimate(ServerLevel world, net.minecraft.core.BlockPos pos) {
@@ -349,11 +373,12 @@ public final class MadokuSeason {
 			return;
 		}
 
-		SeasonState currentState = refreshSeasonState();
 		ServerLevel world = server.overworld();
 		if (world == null) {
 			return;
 		}
+
+		SeasonState currentState = refreshSeasonState(world);
 
 		List<Long> candidateChunks = collectCandidateChunks(server, world);
 		if (candidateChunks.isEmpty()) {
@@ -382,12 +407,13 @@ public final class MadokuSeason {
 			return;
 		}
 
-		SeasonState currentState = refreshSeasonState();
 		ServerLevel world = server.overworld();
 		if (world == null) {
 			requestSeasonProcessProcessing(server, MadokuSeasonConfig.DEFAULT_SEASON_PROCESS_INTERVAL_TICKS);
 			return;
 		}
+
+		SeasonState currentState = refreshSeasonState(world);
 
 		SeasonWaterWork work = pollNextSeasonWaterWork();
 		if (work == null) {
@@ -400,9 +426,9 @@ public final class MadokuSeason {
 		requestSeasonProcessProcessing(server, MadokuSeasonConfig.DEFAULT_SEASON_PROCESS_INTERVAL_TICKS);
 	}
 
-	private static SeasonState refreshSeasonState() {
+	private static SeasonState refreshSeasonState(ServerLevel world) {
 		SeasonState previousState = lastProcessedState;
-		SeasonState currentState = resolveCurrentState();
+		SeasonState currentState = resolveCurrentState(world);
 		boolean seasonTransition = previousState.absoluteDay() >= 0L && previousState.season() != currentState.season();
 		if (seasonTransition) {
 			emitSeasonTransitionDebug(previousState, currentState);
@@ -410,7 +436,30 @@ public final class MadokuSeason {
 		if (!currentState.equals(previousState)) {
 			lastProcessedState = currentState;
 		}
+		if (seasonTransition) {
+			refreshSeasonQueue(world == null ? null : world.getServer());
+		}
 		return currentState;
+	}
+
+	private static void refreshSeasonQueue(MinecraftServer server) {
+		PENDING_WATER_WORK.clear();
+		PENDING_WATER_WORK_ORDER.clear();
+		seasonScanTaskScheduled = false;
+		seasonProcessTaskScheduled = false;
+
+		if (server == null) {
+			return;
+		}
+
+		String schedulerId = ensureSeasonSchedulerExists();
+		if (schedulerId != null && !schedulerId.isBlank()) {
+			MadokuScheduler.clearQueuedRequests(schedulerId);
+		}
+
+		savePersistedData(server);
+		requestSeasonScanProcessing(server, 1L);
+		requestSeasonProcessProcessing(server, 1L);
 	}
 
 	private static void emitSeasonTransitionDebug(SeasonState previousState, SeasonState currentState) {
@@ -420,7 +469,7 @@ public final class MadokuSeason {
 
 		MadokuDebug.event("season.transition", MadokuDebug.Domain.SEASON)
 			.side(MadokuDebug.Side.SERVER)
-			.tick(MadokuClock.getTimeTicks())
+			.tick(MadokuTicks.getGameplayTicks())
 			.subject("season")
 			.field("from", previousState.season().id)
 			.field("to", currentState.season().id)
@@ -447,7 +496,7 @@ public final class MadokuSeason {
 
 		MadokuDebug.event("season.queue_scan", MadokuDebug.Domain.SEASON)
 			.side(MadokuDebug.Side.SERVER)
-			.tick(MadokuClock.getTimeTicks())
+			.tick(MadokuTicks.getGameplayTicks())
 			.world(world == null ? "" : world.dimension().toString())
 			.subject("season_water_scan")
 			.field("season", state == null ? "unknown" : state.season().id)
@@ -474,7 +523,7 @@ public final class MadokuSeason {
 		BlockPos pos = BlockPos.of(work.blockPosLong());
 		MadokuDebug.event("season.queue_process", MadokuDebug.Domain.SEASON)
 			.side(MadokuDebug.Side.SERVER)
-			.tick(MadokuClock.getTimeTicks())
+			.tick(MadokuTicks.getGameplayTicks())
 			.world(world == null ? "" : world.dimension().toString())
 			.subject("block:" + pos.getX() + "," + pos.getY() + "," + pos.getZ())
 			.field("season", state == null ? "unknown" : state.season().id)
@@ -615,7 +664,7 @@ public final class MadokuSeason {
 				action,
 				state.season().id,
 				state.seasonDay(),
-				MadokuClock.getTimeTicks()
+				MadokuTicks.getGameplayTicks()
 			);
 		}
 
@@ -858,6 +907,14 @@ public final class MadokuSeason {
 			);
 		return status == MadokuScheduler.EnqueueStatus.ACCEPTED
 			|| status == MadokuScheduler.EnqueueStatus.QUEUE_FULL;
+	}
+
+	private static SeasonState resolveDisplayState() {
+		SeasonState snapshot = lastProcessedState;
+		if (!MadokuTime.isEnabled() && snapshot.absoluteDay() >= 0L) {
+			return snapshot;
+		}
+		return resolveCurrentState();
 	}
 
 	private static SeasonState resolveCurrentState() {

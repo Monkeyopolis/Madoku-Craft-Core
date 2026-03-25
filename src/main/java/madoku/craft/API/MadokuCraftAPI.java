@@ -28,14 +28,15 @@ public class MadokuCraftAPI implements ModInitializer {
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuDebug.resetSession();
+			MadokuTicks.reset();
 			MadokuClock.reset();
 			MadokuSleep.reset();
 			MadokuTime.reset();
 			MadokuSeason.reset();
 			MadokuScheduler.reset();
+			MadokuScheduler.loadPersistedData(server);
 			MadokuTime.loadPersistedData(server);
 			MadokuSeason.loadPersistedData(server);
-			MadokuScheduler.loadPersistedData(server);
 			MadokuSeason.onServerStarted(server);
 			MadokuTime.update(server);
 			WorldSeasonSync.reset();
@@ -47,6 +48,7 @@ public class MadokuCraftAPI implements ModInitializer {
 			MadokuSeason.savePersistedData(server);
 			MadokuScheduler.savePersistedData(server);
 			MadokuClock.reset();
+			MadokuTicks.reset();
 			MadokuSleep.reset();
 			MadokuTime.reset();
 			MadokuSeason.reset();
@@ -56,6 +58,7 @@ public class MadokuCraftAPI implements ModInitializer {
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			long tickIncrement = MadokuSleep.getTickIncrement(server);
+			MadokuTime.update(server);
 			MadokuTicks.advance(server, tickIncrement);
 			MadokuScheduler.autosavePersistedData(server);
 			MadokuTime.autosavePersistedData(server);
