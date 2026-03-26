@@ -3,7 +3,6 @@ package madoku.craft.time;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.Level;
 
 public final class MadokuSleep {
 	private static final double SLEEP_SPEED_MULTIPLIER = 100.0D;
@@ -58,27 +57,13 @@ public final class MadokuSleep {
 			return false;
 		}
 		if (!MadokuTime.isEnabled()) {
-			return !player.level().isDay();
+			return true;
 		}
 		return MadokuTime.isSleepTime(player.level().getDayTime());
 	}
 
-	public static boolean shouldTreatAsDayForSleepCheck(Level level, Player player) {
-		if (level == null) {
-			return true;
-		}
-		if (!MadokuTime.isEnabled()) {
-			return level.isDay();
-		}
-		return !canStartSleeping(player);
-	}
-
-	public static boolean shouldWakeSleepingPlayer(Level level, Player player) {
-		return shouldTreatAsDayForSleepCheck(level, player);
-	}
-
 	private static void wakeSleepingPlayers(MinecraftServer server) {
-		if (!MadokuTime.isDaytime(server.overworld().getDayTime())) {
+		if (server.overworld() == null || !MadokuTime.isDaytime(server.overworld().getDayTime())) {
 			return;
 		}
 

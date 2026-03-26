@@ -1,6 +1,7 @@
 package madoku.craft.data;
 
 import com.google.gson.JsonObject;
+import madoku.craft.API.MadokuCraftAPI;
 import madoku.craft.config.StaticJsonSystem;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -88,7 +89,8 @@ public final class MadokuData {
 		}
 
 		Path root = StaticJsonSystem.getWorldRootDirectory(server);
-		Path directory = root.resolve(normalizedName);
+		boolean useRoot = MadokuCraftAPI.MOD_ID.equals(normalizedName);
+		Path directory = useRoot ? root : root.resolve(normalizedName);
 		if (createDirectories) {
 			try {
 				Files.createDirectories(directory);

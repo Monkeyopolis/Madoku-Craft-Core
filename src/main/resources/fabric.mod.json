@@ -3,13 +3,13 @@
 	"id": "madoku-craft-api",
 	"version": "${version}",
 	"name": "Madoku Craft API",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "Shared infrastructure systems for Madoku Craft, including JSON config, persistent data, scheduling, debug, time, and season handling.",
 	"authors": [
-		"Me!"
+		"Monkeyopolis"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://www.curseforge.com/minecraft/mc-mods/madoku-craft",
+		"sources": "This API is maintained alongside the Madoku Craft mod source."
 	},
 	"license": "CC0-1.0",
 	"icon": "assets/madoku-craft-api/icon.png",
@@ -17,6 +17,9 @@
 	"entrypoints": {
 		"main": [
 			"madoku.craft.API.MadokuCraftAPI"
+		],
+		"client": [
+			"madoku.craft.API.MadokuCraftAPIClient"
 		]
 	},
 	"mixins": [

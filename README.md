@@ -1,24 +1,27 @@
 ## Madoku Craft: API
 
-Madoku Craft: API is a Fabric library MOD required by all Madoku Craft MODs.
+Madoku Craft: API is the shared Fabric system layer used by Madoku Craft.
+It provides the infrastructure that the main mod builds on for config, data, time, scheduling, and debug handling.
 
-## Features:
+## Features
 
-- Dedicated JSON file system.
-This system manages how a MOD's JSON files are created, updated, and deleted.
+- Dedicated JSON system.
+This system manages how managed JSON files are created, updated, and normalized.
 
-- Dedicated Data system.
-This system manages how a MOD saves and loads data.
-It can manage global and world specific data.
+- Dedicated data system.
+This system manages how a mod saves and loads world data.
+It supports persistent global and world-specific state.
 
-- Dedicated Scheduler system.
+- Dedicated scheduler system.
 This system manages how events are scheduled and executed.
-It allows a MOD to hook into Minecraft's TICK system more consistently.
+It keeps long-running tasks aligned with the game's tick loop.
 
-- Dedicated INFO debug system.
+- Dedicated debug system.
 This system manages how INFO debugs are handled.
-It allows a MOD to toggle debugs on and off without adjusting the code.
+It allows debug domains and metrics to be toggled without code changes.
 
-- Dedicated Clock system.
-This system creates a configurable time system.
-It ties all API systems together and allows users to change the time cycle.
+- Dedicated clock and time system.
+This system manages the shared gameplay clock and the configurable world-time model used by Madoku Craft.
+
+- Dedicated season system.
+This system manages season state, seasonal precipitation, and season sync.

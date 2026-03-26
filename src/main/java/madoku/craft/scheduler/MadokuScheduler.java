@@ -4,8 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
-import madoku.craft.data.MadokuData;
 import madoku.craft.clock.MadokuClock;
+import madoku.craft.data.MadokuData;
 import madoku.craft.debug.MadokuDebug;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
@@ -82,6 +82,31 @@ public final class MadokuScheduler {
 		ticking = false;
 		dirty = false;
 		lastAutosaveBucket = Long.MIN_VALUE;
+	}
+
+	public static void clearQueuedRequests(String schedulerId) {
+		if (schedulerId == null || schedulerId.isBlank()) {
+			return;
+		}
+
+		SchedulerState scheduler = SCHEDULERS.get(schedulerId);
+		if (scheduler == null) {
+			scheduler = PENDING_SCHEDULERS.get(schedulerId);
+		}
+		if (scheduler == null) {
+			return;
+		}
+
+		if (scheduler.gameplayRequests.isEmpty() && scheduler.timeRequests.isEmpty()) {
+			return;
+		}
+
+		scheduler.gameplayRequests.clear();
+		scheduler.timeRequests.clear();
+		scheduler.lastActivityTick = MadokuClock.getGameplayTicks();
+		scheduler.nextScanTick = scheduler.lastActivityTick;
+		scheduler.nextOwnerCheckTick = scheduler.lastActivityTick;
+		markSchedulerDirty(scheduler.schedulerId);
 	}
 
 	public static String createScheduler(SchedulerOwner owner) {

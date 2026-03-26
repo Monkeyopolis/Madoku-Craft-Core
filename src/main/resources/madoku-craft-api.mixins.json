@@ -3,7 +3,12 @@
   "package": "madoku.craft.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GameRuleCommandLockMixin"
+    "BiomeSeasonalPrecipitationMixin",
+    "GameRuleCommandLockMixin",
+    "ServerLevelSeasonalPrecipitationMixin"
+  ],
+  "client": [
+    "client.WeatherEffectRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

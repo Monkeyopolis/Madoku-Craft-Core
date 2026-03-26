@@ -235,6 +235,7 @@ public final class MadokuDebug {
 			setDomainEnabled(Domain.SLEEP, true);
 			setDomainEnabled(Domain.HEALTH, true);
 			setDomainEnabled(Domain.HUNGER, true);
+			setDomainEnabled(Domain.MOB, true);
 		}
 	}
 
@@ -263,6 +264,7 @@ public final class MadokuDebug {
 		activeDomains.add(Domain.SLEEP.id());
 		activeDomains.add(Domain.HEALTH.id());
 		activeDomains.add(Domain.HUNGER.id());
+		activeDomains.add(Domain.MOB.id());
 		root.add("active_domains", activeDomains);
 		root.add("disabled_metrics", new JsonArray());
 		return root;
@@ -341,11 +343,13 @@ public final class MadokuDebug {
 		UI("ui"),
 		SPAWNING("spawning"),
 		SCHEDULER("scheduler"),
+		SEASON("season"),
 		HEALTH("health"),
 		HUNGER("hunger"),
 		NETWORK("network"),
 		CLOCK("clock"),
 		SLEEP("sleep"),
+		FARMING("farming"),
 		WORLD("world"),
 		OTHER("other");
 
@@ -376,14 +380,16 @@ public final class MadokuDebug {
 				case "blockentity", "block_entity", "blockentities", "block_entities", "entityblock", "entityblocks", "entity_block", "entity_blocks" -> BLOCK_ENTITY;
 				case "block", "blocks" -> BLOCK;
 				case "item", "items" -> ITEM;
-				case "ui" -> UI;
-				case "spawn", "spawning", "mob_spawning" -> SPAWNING;
+					case "ui" -> UI;
+					case "spawn", "spawning", "mob_spawning" -> SPAWNING;
 				case "scheduler", "schedulers" -> SCHEDULER;
+				case "season", "seasons" -> SEASON;
 				case "health", "hp" -> HEALTH;
 				case "hunger", "food" -> HUNGER;
 				case "network", "net" -> NETWORK;
 				case "clock", "time_clock" -> CLOCK;
 				case "sleep", "sleeping" -> SLEEP;
+				case "farming", "farm", "farmland" -> FARMING;
 				case "world" -> WORLD;
 				case "other", "*" -> OTHER;
 				default -> null;
