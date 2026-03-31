@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 
 public class MadokuCraftAPI implements ModInitializer {
 	public static final String MOD_ID = "madoku-craft-api";
+	public static final String SHARED_NAMESPACE = "madoku-craft";
 
 	@Override
 	public void onInitialize() {
