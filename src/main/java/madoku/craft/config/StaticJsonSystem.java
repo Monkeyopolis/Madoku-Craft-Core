@@ -38,14 +38,14 @@ public final class StaticJsonSystem {
 	}
 
 	public static Path getGlobalRootDirectory() {
-		return FabricLoader.getInstance().getConfigDir().resolve(MadokuCraftAPI.MOD_ID);
+		return FabricLoader.getInstance().getConfigDir().resolve(MadokuCraftAPI.SHARED_NAMESPACE);
 	}
 
 	public static Path getWorldRootDirectory(MinecraftServer server) {
 		if (server == null) {
 			throw new IllegalArgumentException("Server must not be null.");
 		}
-		return server.getWorldPath(LevelResource.ROOT).resolve(MadokuCraftAPI.MOD_ID);
+		return server.getWorldPath(LevelResource.ROOT).resolve(MadokuCraftAPI.SHARED_NAMESPACE);
 	}
 
 	public static Path getOrCreateGlobalSystemDirectory(String systemName) {
@@ -100,7 +100,8 @@ public final class StaticJsonSystem {
 		}
 
 		String resolved = FabricLoader.getInstance()
-			.getModContainer(MadokuCraftAPI.MOD_ID)
+			.getModContainer(MadokuCraftAPI.SHARED_NAMESPACE)
+			.or(() -> FabricLoader.getInstance().getModContainer(MadokuCraftAPI.MOD_ID))
 			.map(container -> container.getMetadata().getVersion().getFriendlyString())
 			.orElse("unknown");
 		cachedModVersion = resolved;

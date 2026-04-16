@@ -20,8 +20,8 @@ import java.nio.file.Path;
 public final class MadokuTime {
 	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuTime.class);
 
-	private static final long DEFAULT_REAL_MINUTES_PER_DAY = 16L;
-	private static final long DEFAULT_REAL_MINUTES_PER_NIGHT = 8L;
+	private static final long DEFAULT_REAL_MINUTES_PER_DAY = 12L;
+	private static final long DEFAULT_REAL_MINUTES_PER_NIGHT = 12L;
 	private static final int DEFAULT_CLOCK_DAY_START_MINUTES = 6 * 60;
 	private static final int DEFAULT_CLOCK_NIGHT_START_MINUTES = 18 * 60;
 	private static final int DEFAULT_CLOCK_MIDNIGHT_MINUTES = 0;
@@ -239,6 +239,14 @@ public final class MadokuTime {
 
 	public static boolean isEnabled() {
 		return settings.enabled;
+	}
+
+	public static long getGameplayTicksPerDay() {
+		TimeSettings currentSettings = settings;
+		if (!currentSettings.enabled) {
+			return MINECRAFT_TICKS_PER_CYCLE;
+		}
+		return Math.max(1L, currentSettings.serverTicksPerCycle);
 	}
 
 	public static long toAbsoluteDayTime(long day, int hour, int minute) {
