@@ -9,7 +9,7 @@ import net.minecraft.resources.ResourceLocation;
 
 public record WorldSeasonPayload(String season) implements CustomPacketPayload {
 	public static final CustomPacketPayload.Type<WorldSeasonPayload> TYPE =
-		new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(MadokuCraftAPI.MOD_ID, "world_season"));
+		new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(MadokuCraftAPI.SHARED_NAMESPACE, "world_season"));
 	public static final StreamCodec<RegistryFriendlyByteBuf, WorldSeasonPayload> CODEC =
 		StreamCodec.composite(
 			ByteBufCodecs.STRING_UTF8,

@@ -17,6 +17,7 @@ import net.minecraft.world.InteractionResult;
 
 public class MadokuCraftAPI implements ModInitializer {
 	public static final String MOD_ID = "madoku-craft-api";
+	public static final String SHARED_NAMESPACE = "madoku-craft";
 
 	@Override
 	public void onInitialize() {
@@ -38,15 +39,15 @@ public class MadokuCraftAPI implements ModInitializer {
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			MadokuDebug.resetSession();
-			MadokuClock.reset();
 			MadokuTicks.reset();
+			MadokuClock.reset();
 			MadokuSleep.reset();
 			MadokuTime.reset();
 			MadokuSeason.reset();
 			MadokuScheduler.reset();
+			MadokuScheduler.loadPersistedData(server);
 			MadokuTime.loadPersistedData(server);
 			MadokuSeason.loadPersistedData(server);
-			MadokuScheduler.loadPersistedData(server);
 			MadokuSeason.onServerStarted(server);
 			MadokuTime.update(server);
 			WorldSeasonSync.reset();
@@ -54,8 +55,8 @@ public class MadokuCraftAPI implements ModInitializer {
 		});
 
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			MadokuSeason.savePersistedData(server);
 			MadokuTime.savePersistedData(server);
+			MadokuSeason.savePersistedData(server);
 			MadokuScheduler.savePersistedData(server);
 			MadokuClock.reset();
 			MadokuTicks.reset();

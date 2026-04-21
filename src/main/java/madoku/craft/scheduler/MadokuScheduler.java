@@ -215,6 +215,10 @@ public final class MadokuScheduler {
 		return EnqueueStatus.ACCEPTED;
 	}
 
+	public static void tick(MinecraftServer server, boolean gameplaySignal) {
+		tick(server, gameplaySignal, gameplaySignal);
+	}
+
 	public static void tick(MinecraftServer server, boolean gameplaySignal, boolean timeSignal) {
 		if (server == null) {
 			return;

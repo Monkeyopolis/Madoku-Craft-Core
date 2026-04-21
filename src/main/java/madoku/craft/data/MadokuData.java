@@ -89,7 +89,8 @@ public final class MadokuData {
 		}
 
 		Path root = StaticJsonSystem.getWorldRootDirectory(server);
-		boolean useRoot = MadokuCraftAPI.MOD_ID.equals(normalizedName);
+		boolean useRoot = MadokuCraftAPI.MOD_ID.equals(normalizedName)
+			|| MadokuCraftAPI.SHARED_NAMESPACE.equals(normalizedName);
 		Path directory = useRoot ? root : root.resolve(normalizedName);
 		if (createDirectories) {
 			try {

@@ -65,6 +65,9 @@ public abstract class ServerLevelSeasonalPrecipitationMixin {
 					.log();
 			}
 		}
-		return precipitation == Biome.Precipitation.SNOW;
+		if (precipitation != Biome.Precipitation.SNOW) {
+			return false;
+		}
+		return biome.shouldSnow(level, pos);
 	}
 }
