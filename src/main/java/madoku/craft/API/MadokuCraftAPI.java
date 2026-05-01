@@ -2,10 +2,11 @@ package madoku.craft.API;
 
 import madoku.craft.clock.MadokuClock;
 import madoku.craft.clock.MadokuTicks;
-import madoku.craft.config.StaticJsonSystem;
+import madoku.craft.chunk.ChunkManagerSystem;
+import madoku.craft.config.JsonManagerSystem;
 import madoku.craft.debug.MadokuDebug;
 import madoku.craft.network.WorldSeasonSync;
-import madoku.craft.scheduler.MadokuScheduler;
+import madoku.craft.scheduler.SchedulerManagerSystem;
 import madoku.craft.season.MadokuSeason;
 import madoku.craft.time.MadokuSleep;
 import madoku.craft.time.MadokuTime;
@@ -20,7 +21,8 @@ public class MadokuCraftAPI implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		StaticJsonSystem.initialize();
+		JsonManagerSystem.initialize();
+		ChunkManagerSystem.initialize();
 		MadokuDebug.initialize();
 		MadokuTime.initialize();
 		MadokuSeason.initialize();
@@ -34,26 +36,33 @@ public class MadokuCraftAPI implements ModInitializer {
 			MadokuSleep.reset();
 			MadokuTime.reset();
 			MadokuSeason.reset();
-			MadokuScheduler.reset();
-			MadokuScheduler.loadPersistedData(server);
+			ChunkManagerSystem.reset();
+			SchedulerManagerSystem.reset();
+			SchedulerManagerSystem.loadPersistedData(server);
+			ChunkManagerSystem.loadPersistedData(server);
 			MadokuTime.loadPersistedData(server);
 			MadokuSeason.loadPersistedData(server);
+			ChunkManagerSystem.onServerStarted(server);
 			MadokuSeason.onServerStarted(server);
 			MadokuTime.update(server);
 			WorldSeasonSync.reset();
 			WorldSeasonSync.broadcastNow(server);
 		});
 
+		ServerLifecycleEvents.SERVER_STOPPING.register(ChunkManagerSystem::onServerStopping);
+
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			MadokuTime.savePersistedData(server);
 			MadokuSeason.savePersistedData(server);
-			MadokuScheduler.savePersistedData(server);
+			ChunkManagerSystem.savePersistedData(server);
+			SchedulerManagerSystem.savePersistedData(server);
 			MadokuClock.reset();
 			MadokuTicks.reset();
 			MadokuSleep.reset();
 			MadokuTime.reset();
 			MadokuSeason.reset();
-			MadokuScheduler.reset();
+			ChunkManagerSystem.reset();
+			SchedulerManagerSystem.reset();
 			WorldSeasonSync.reset();
 		});
 
@@ -61,7 +70,13 @@ public class MadokuCraftAPI implements ModInitializer {
 			long tickIncrement = MadokuSleep.getTickIncrement(server);
 			MadokuTime.update(server);
 			MadokuTicks.advance(server, tickIncrement);
-			MadokuScheduler.autosavePersistedData(server);
+			if (MadokuTime.isEnabled()) {
+				SchedulerManagerSystem.onClockTick(server);
+			} else {
+				SchedulerManagerSystem.onServerTick(server);
+			}
+			SchedulerManagerSystem.autosavePersistedData(server);
+			ChunkManagerSystem.autosavePersistedData(server);
 			MadokuTime.autosavePersistedData(server);
 			MadokuSeason.autosavePersistedData(server);
 			MadokuTime.update(server);

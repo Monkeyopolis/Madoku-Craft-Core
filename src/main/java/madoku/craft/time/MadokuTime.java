@@ -4,8 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import madoku.craft.clock.MadokuClock;
 import madoku.craft.clock.MadokuTicks;
-import madoku.craft.config.StaticJsonSystem;
-import madoku.craft.data.MadokuData;
+import madoku.craft.config.JsonManagerSystem;
+import madoku.craft.config.JsonStaticSystem;
+import madoku.craft.data.DataManagerSystem;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
@@ -38,8 +39,6 @@ public final class MadokuTime {
 	private static final String TIME_CONFIG_FILE_NAME = "madoku-time";
 	private static final String DATA_FOLDER_NAME = "madoku-craft-time";
 	private static final String DATA_FILE_NAME = "madoku-time";
-	private static final long AUTOSAVE_INTERVAL_TICKS =
-		MadokuTicks.SECONDS_PER_MINUTE * MadokuTicks.TICKS_PER_SECOND;
 
 	private static volatile TimeSettings settings = TimeSettings.defaults();
 	private static boolean hasAppliedDayTime = false;
@@ -69,7 +68,7 @@ public final class MadokuTime {
 		loadStaticConfig();
 		TimeSettings currentSettings = settings;
 
-		MadokuData.createWorldData(
+		JsonObject data = DataManagerSystem.loadWorldData(
 			server,
 			DATA_FOLDER_NAME,
 			DATA_FILE_NAME,
@@ -80,12 +79,6 @@ public final class MadokuTime {
 			)
 		);
 
-			JsonObject data = MadokuData.loadWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
-			if (data == null) {
-				lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
-				return;
-			}
-
 		long day = getLong(data, "day", 0L);
 		int hour = (int) getLong(data, "hour", currentSettings.clockDayStartMinutes / 60);
 		int minute = (int) getLong(data, "minute", currentSettings.clockDayStartMinutes % 60);
@@ -93,11 +86,13 @@ public final class MadokuTime {
 			setClockFromAbsoluteDayTime(toAbsoluteDayTime(day, hour, minute));
 		}
 
-		lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long autoSaveIntervalTicks = DataManagerSystem.getAutoSaveIntervalTicks(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
+		lastAutosaveBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), autoSaveIntervalTicks);
 	}
 
 	public static void autosavePersistedData(MinecraftServer server) {
-		long currentBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), AUTOSAVE_INTERVAL_TICKS);
+		long autoSaveIntervalTicks = DataManagerSystem.getAutoSaveIntervalTicks(server, DATA_FOLDER_NAME, DATA_FILE_NAME);
+		long currentBucket = Math.floorDiv(MadokuTicks.getGameplayTicks(), autoSaveIntervalTicks);
 		if (currentBucket != lastAutosaveBucket) {
 			lastAutosaveBucket = currentBucket;
 			savePersistedData(server);
@@ -110,7 +105,7 @@ public final class MadokuTime {
 		int totalMinutes = getTotalMinutes(absoluteDayTime);
 		int hour = totalMinutes / 60;
 		int minute = totalMinutes % 60;
-		MadokuData.saveWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, createData(day, hour, minute));
+		DataManagerSystem.saveWorldData(server, DATA_FOLDER_NAME, DATA_FILE_NAME, createData(day, hour, minute));
 	}
 
 	public static void update(MinecraftServer server) {
@@ -515,12 +510,12 @@ public final class MadokuTime {
 		TimeSettings fallback = TimeSettings.defaults();
 
 		try {
-			Path configDirectory = StaticJsonSystem.getOrCreateGlobalSystemDirectory(TIME_CONFIG_FOLDER_NAME);
+			Path configDirectory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(TIME_CONFIG_FOLDER_NAME);
 			Path configFile = resolveJsonFile(configDirectory, TIME_CONFIG_FILE_NAME);
-			JsonObject normalized = StaticJsonSystem.ensureManagedFile(configFile, defaults);
+			JsonObject normalized = JsonStaticSystem.ensureManagedFile(configFile, defaults);
 			TimeSettings loaded = TimeSettings.fromJson(normalized);
 			JsonObject cleaned = loaded.toConfigJson();
-			StaticJsonSystem.writeManagedFile(configFile, cleaned, defaults);
+			JsonStaticSystem.writeManagedFile(configFile, cleaned, defaults);
 			settings = loaded;
 		} catch (IOException | RuntimeException exception) {
 			settings = fallback;
@@ -648,24 +643,24 @@ public final class MadokuTime {
 		private static TimeSettings fromJson(JsonObject source) {
 			boolean enabled = getBoolean(source, "enabled", true);
 			long dayMinutes = sanitizePositive(
-				getLong(source, "real_minutes_per_day", DEFAULT_REAL_MINUTES_PER_DAY),
+				getLong(source, "real-minutes-per-day", DEFAULT_REAL_MINUTES_PER_DAY),
 				DEFAULT_REAL_MINUTES_PER_DAY
 			);
 			long nightMinutes = sanitizePositive(
-				getLong(source, "real_minutes_per_night", DEFAULT_REAL_MINUTES_PER_NIGHT),
+				getLong(source, "real-minutes-per-night", DEFAULT_REAL_MINUTES_PER_NIGHT),
 				DEFAULT_REAL_MINUTES_PER_NIGHT
 			);
 
 			int dayStart = parseClockMinutes(
-				getString(source, "clock_day_start", formatClockMinutes(DEFAULT_CLOCK_DAY_START_MINUTES)),
+				getString(source, "clock-day-start", formatClockMinutes(DEFAULT_CLOCK_DAY_START_MINUTES)),
 				DEFAULT_CLOCK_DAY_START_MINUTES
 			);
 			int nightStart = parseClockMinutes(
-				getString(source, "clock_night_start", formatClockMinutes(DEFAULT_CLOCK_NIGHT_START_MINUTES)),
+				getString(source, "clock-night-start", formatClockMinutes(DEFAULT_CLOCK_NIGHT_START_MINUTES)),
 				DEFAULT_CLOCK_NIGHT_START_MINUTES
 			);
 			int midnight = parseClockMinutes(
-				getString(source, "clock_midnight", formatClockMinutes(DEFAULT_CLOCK_MIDNIGHT_MINUTES)),
+				getString(source, "clock-midnight", formatClockMinutes(DEFAULT_CLOCK_MIDNIGHT_MINUTES)),
 				DEFAULT_CLOCK_MIDNIGHT_MINUTES
 			);
 
@@ -709,11 +704,11 @@ public final class MadokuTime {
 		private JsonObject toConfigJson() {
 			JsonObject root = new JsonObject();
 			root.addProperty("enabled", enabled);
-			root.addProperty("real_minutes_per_day", realMinutesPerDay);
-			root.addProperty("real_minutes_per_night", realMinutesPerNight);
-			root.addProperty("clock_day_start", formatClockMinutes(clockDayStartMinutes));
-			root.addProperty("clock_night_start", formatClockMinutes(clockNightStartMinutes));
-			root.addProperty("clock_midnight", formatClockMinutes(clockMidnightMinutes));
+			root.addProperty("real-minutes-per-day", realMinutesPerDay);
+			root.addProperty("real-minutes-per-night", realMinutesPerNight);
+			root.addProperty("clock-day-start", formatClockMinutes(clockDayStartMinutes));
+			root.addProperty("clock-night-start", formatClockMinutes(clockNightStartMinutes));
+			root.addProperty("clock-midnight", formatClockMinutes(clockMidnightMinutes));
 			return root;
 		}
 	}

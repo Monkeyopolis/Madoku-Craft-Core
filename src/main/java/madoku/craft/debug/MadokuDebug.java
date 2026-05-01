@@ -3,7 +3,8 @@ package madoku.craft.debug;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import madoku.craft.config.StaticJsonSystem;
+import madoku.craft.config.JsonManagerSystem;
+import madoku.craft.config.JsonStaticSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,9 +41,9 @@ public final class MadokuDebug {
 		JsonObject defaults = createDefaultConfig();
 
 		try {
-			Path directory = StaticJsonSystem.getOrCreateGlobalSystemDirectory(DEBUG_CONFIG_FOLDER_NAME);
+			Path directory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(DEBUG_CONFIG_FOLDER_NAME);
 			Path configFile = resolveJsonFile(directory, DEBUG_CONFIG_FILE_NAME);
-			JsonObject normalized = StaticJsonSystem.ensureManagedFile(configFile, defaults);
+			JsonObject normalized = JsonStaticSystem.ensureManagedFile(configFile, defaults);
 			loadConfig(normalized, defaults);
 		} catch (IOException | RuntimeException exception) {
 			loadConfig(defaults, defaults);
@@ -190,8 +191,8 @@ public final class MadokuDebug {
 
 	private static void loadConfig(JsonObject source, JsonObject defaults) {
 		enabled = getBoolean(source, "enabled", false);
-		applyActiveDomains(getArray(source, "active_domains"), defaults);
-		applyDisabledMetrics(getArray(source, "disabled_metrics"));
+		applyActiveDomains(getArray(source, "active-domains"), defaults);
+		applyDisabledMetrics(getArray(source, "disabled-metrics"));
 	}
 
 	private static void applyActiveDomains(JsonArray domains, JsonObject defaults) {
@@ -215,7 +216,7 @@ public final class MadokuDebug {
 		}
 
 		if (!anyEnabled) {
-			JsonArray fallbackDomains = getArray(defaults, "active_domains");
+			JsonArray fallbackDomains = getArray(defaults, "active-domains");
 			if (fallbackDomains != null) {
 				for (JsonElement element : fallbackDomains) {
 					if (element == null || !element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
@@ -238,6 +239,7 @@ public final class MadokuDebug {
 						setDomainEnabled(Domain.HUNGER, true);
 						setDomainEnabled(Domain.MOB, true);
 						setDomainEnabled(Domain.FARMING, true);
+						setDomainEnabled(Domain.PET, true);
 					}
 			}
 
@@ -266,12 +268,13 @@ public final class MadokuDebug {
 				activeDomains.add(Domain.SLEEP.id());
 				activeDomains.add(Domain.SMELTING.id());
 				activeDomains.add(Domain.HEALTH.id());
-					activeDomains.add(Domain.HUNGER.id());
+				activeDomains.add(Domain.HUNGER.id());
 					activeDomains.add(Domain.MOB.id());
 				activeDomains.add(Domain.FARMING.id());
 				activeDomains.add(Domain.SEASON.id());
-				root.add("active_domains", activeDomains);
-				root.add("disabled_metrics", new JsonArray());
+				activeDomains.add(Domain.PET.id());
+				root.add("active-domains", activeDomains);
+				root.add("disabled-metrics", new JsonArray());
 				return root;
 	}
 
@@ -340,6 +343,7 @@ public final class MadokuDebug {
 
 	public enum Domain {
 		PLAYER("player"),
+		LUCK("luck"),
 		MOB("mob"),
 		ENTITY("entity"),
 		BLOCK_ENTITY("block_entity"),
@@ -351,6 +355,7 @@ public final class MadokuDebug {
 		SMELTING("smelting"),
 		HEALTH("health"),
 				HUNGER("hunger"),
+		PET("pet"),
 			NETWORK("network"),
 			CLOCK("clock"),
 			SLEEP("sleep"),
@@ -381,6 +386,7 @@ public final class MadokuDebug {
 
 			return switch (value) {
 				case "player", "players" -> PLAYER;
+				case "luck" -> LUCK;
 				case "mob", "mobs" -> MOB;
 				case "entity", "entities" -> ENTITY;
 				case "blockentity", "block_entity", "blockentities", "block_entities", "entityblock", "entityblocks", "entity_block", "entity_blocks" -> BLOCK_ENTITY;
@@ -392,6 +398,7 @@ public final class MadokuDebug {
 					case "smelting", "smelt" -> SMELTING;
 					case "health", "hp" -> HEALTH;
 						case "hunger", "food" -> HUNGER;
+						case "pet", "pets" -> PET;
 						case "network", "net" -> NETWORK;
 						case "clock", "time_clock" -> CLOCK;
 						case "sleep", "sleeping" -> SLEEP;
