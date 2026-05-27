@@ -5,7 +5,9 @@ import madoku.craft.clock.MadokuTicks;
 import madoku.craft.chunk.ChunkManagerSystem;
 import madoku.craft.config.JsonManagerSystem;
 import madoku.craft.debug.MadokuDebug;
+import madoku.craft.loot.system.MadokuLootTableSystem;
 import madoku.craft.network.WorldSeasonSync;
+import madoku.craft.recipe.system.MadokuRecipe;
 import madoku.craft.scheduler.SchedulerManagerSystem;
 import madoku.craft.season.MadokuSeason;
 import madoku.craft.time.MadokuSleep;
@@ -23,6 +25,8 @@ public class MadokuCraftAPI implements ModInitializer {
 	public void onInitialize() {
 		JsonManagerSystem.initialize();
 		ChunkManagerSystem.initialize();
+		MadokuRecipe.initialize();
+		MadokuLootTableSystem.initialize();
 		MadokuDebug.initialize();
 		MadokuTime.initialize();
 		MadokuSeason.initialize();
@@ -68,8 +72,8 @@ public class MadokuCraftAPI implements ModInitializer {
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			long tickIncrement = MadokuSleep.getTickIncrement(server);
-			MadokuTime.update(server);
 			MadokuTicks.advance(server, tickIncrement);
+			MadokuTime.update(server);
 			if (MadokuTime.isEnabled()) {
 				SchedulerManagerSystem.onClockTick(server);
 			} else {
@@ -79,7 +83,6 @@ public class MadokuCraftAPI implements ModInitializer {
 			ChunkManagerSystem.autosavePersistedData(server);
 			MadokuTime.autosavePersistedData(server);
 			MadokuSeason.autosavePersistedData(server);
-			MadokuTime.update(server);
 			MadokuSeason.onServerTick(server);
 			WorldSeasonSync.broadcastIfChanged(server);
 		});

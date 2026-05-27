@@ -7,7 +7,13 @@
     "PlayerSleepTickMixin",
     "ServerPlayerSleepTimeMixin",
     "BiomeSeasonalPrecipitationMixin",
-    "ServerLevelSeasonalPrecipitationMixin"
+    "BiomeSeasonalFreezeMixin",
+    "IceBlockSeasonalMeltMixin",
+    "SnowLayerBlockSeasonalMeltMixin",
+    "RecipeManagerRecipeOverridesMixin",
+    "LootTableDynamicMixin",
+    "RandomizableContainerLootMixin",
+    "ContainerEntityLootMixin"
   ],
   "injectors": {
     "defaultRequire": 1
