@@ -32,6 +32,10 @@ public final class MadokuLootTableConfig {
 	public static final String FIELD_MIN_COUNT = "min-count";
 	public static final String FIELD_MAX_COUNT = "max-count";
 	public static final String FIELD_USE_MADOKU_LUCK = "use-madoku-luck";
+	public static final String FIELD_OVERRIDE_STRUCTURE_LOOT_TABLES = "override-structure-loot-tables";
+	public static final String FIELD_OVERRIDE_ENTITY_LOOT_TABLES = "override-entity-loot-tables";
+	public static final String FIELD_CUSTOM_ENTITY_EQUIPMENT = "custom-entity-equipment";
+	public static final String FIELD_CUSTOM_ENTITY_EQUIPMENT_CHANCE = "custom-entity-equipment-chance";
 	public static final String FIELD_ROLL_LUCK_MULTIPLIER = "roll-luck-multiplier";
 	public static final String FIELD_RARITY_LUCK_MULTIPLIERS = "rarity-luck-multipliers";
 	public static final String FIELD_LUCK_POINTS = "luck-points";
@@ -43,6 +47,11 @@ public final class MadokuLootTableConfig {
 	public static JsonObject buildSettingsDefaults() {
 		JsonObject root = new JsonObject();
 		root.addProperty(FIELD_ENABLED, true);
+		root.addProperty(FIELD_USE_MADOKU_LUCK, true);
+		root.addProperty(FIELD_OVERRIDE_STRUCTURE_LOOT_TABLES, true);
+		root.addProperty(FIELD_OVERRIDE_ENTITY_LOOT_TABLES, true);
+		root.addProperty(FIELD_CUSTOM_ENTITY_EQUIPMENT, true);
+		root.addProperty(FIELD_CUSTOM_ENTITY_EQUIPMENT_CHANCE, 10.0d);
 		return root;
 	}
 
@@ -278,6 +287,5 @@ public final class MadokuLootTableConfig {
 		return group;
 	}
 }
-
 
 

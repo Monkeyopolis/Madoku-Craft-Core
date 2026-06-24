@@ -5,7 +5,7 @@ import madoku.craft.clock.MadokuTicks;
 import madoku.craft.chunk.ChunkManagerSystem;
 import madoku.craft.config.JsonManagerSystem;
 import madoku.craft.debug.MadokuDebug;
-import madoku.craft.loot.system.MadokuLootTableSystem;
+import madoku.craft.loot.system.MadokuLootTableManager;
 import madoku.craft.network.WorldSeasonSync;
 import madoku.craft.recipe.system.MadokuRecipe;
 import madoku.craft.scheduler.SchedulerManagerSystem;
@@ -26,7 +26,7 @@ public class MadokuCraftAPI implements ModInitializer {
 		JsonManagerSystem.initialize();
 		ChunkManagerSystem.initialize();
 		MadokuRecipe.initialize();
-		MadokuLootTableSystem.initialize();
+		MadokuLootTableManager.initialize();
 		MadokuDebug.initialize();
 		MadokuTime.initialize();
 		MadokuSeason.initialize();
