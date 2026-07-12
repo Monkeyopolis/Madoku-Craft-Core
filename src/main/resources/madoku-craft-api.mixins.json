@@ -5,8 +5,7 @@
   "mixins": [
     "PlayerSleepTickMixin",
     "ServerPlayerSleepTimeMixin",
-    "BiomeSeasonalPrecipitationMixin",
-    "BiomeSeasonalFreezeMixin",
+		"BiomeSeasonalFreezeMixin",
     "IceBlockSeasonalMeltMixin",
     "SnowLayerBlockSeasonalMeltMixin",
     "RecipeManagerRecipeOverridesMixin",
@@ -15,8 +14,11 @@
     "TimelineMixin",
     "LootTableDynamicMixin",
     "RandomizableContainerLootMixin",
-    "ContainerEntityLootMixin"
-  ],
+		"ContainerEntityLootMixin"
+	],
+	"client": [
+		"client.BiomeSeasonalPrecipitationMixin"
+	],
   "injectors": {
     "defaultRequire": 1
   }

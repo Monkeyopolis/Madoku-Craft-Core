@@ -1,4 +1,4 @@
-## Madoku Craft: API
+## Overview
 
 Madoku Craft: API is a Fabric library MOD required by all Madoku Craft: MODs.
 
