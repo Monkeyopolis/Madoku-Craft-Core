@@ -1,17 +1,11 @@
-package madoku.craft.API;
+package madoku.craft.api;
 
-import madoku.craft.clock.MadokuClock;
-import madoku.craft.clock.MadokuTicks;
-import madoku.craft.chunk.ChunkManagerSystem;
-import madoku.craft.config.JsonManagerSystem;
-import madoku.craft.debug.MadokuDebug;
+import madoku.craft.api.season.MadokuSeasonManager;
+import madoku.craft.api.time.MadokuTimeManager;
+import madoku.craft.api.time.SleepManager;
 import madoku.craft.loot.system.MadokuLootTableManager;
 import madoku.craft.network.WorldSeasonSync;
 import madoku.craft.recipe.system.MadokuRecipe;
-import madoku.craft.scheduler.SchedulerManagerSystem;
-import madoku.craft.season.MadokuSeason;
-import madoku.craft.time.MadokuSleep;
-import madoku.craft.time.MadokuTime;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -23,67 +17,34 @@ public class MadokuCraftAPI implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		JsonManagerSystem.initialize();
-		ChunkManagerSystem.initialize();
+		MadokuAPIManager.initialize();
 		MadokuRecipe.initialize();
 		MadokuLootTableManager.initialize();
-		MadokuDebug.initialize();
-		MadokuTime.initialize();
-		MadokuSeason.initialize();
 		WorldSeasonSync.initialize();
-		EntitySleepEvents.ALLOW_RESETTING_TIME.register(player -> !MadokuTime.isEnabled());
+		EntitySleepEvents.ALLOW_RESETTING_TIME.register(SleepManager::shouldAllowResettingTime);
 
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			MadokuDebug.resetSession();
-			MadokuTicks.reset();
-			MadokuClock.reset();
-			MadokuSleep.reset();
-			MadokuTime.reset();
-			MadokuSeason.reset();
-			ChunkManagerSystem.reset();
-			SchedulerManagerSystem.reset();
-			SchedulerManagerSystem.loadPersistedData(server);
-			ChunkManagerSystem.loadPersistedData(server);
-			MadokuTime.loadPersistedData(server);
-			MadokuSeason.loadPersistedData(server);
-			ChunkManagerSystem.onServerStarted(server);
-			MadokuSeason.onServerStarted(server);
-			MadokuTime.update(server);
 			WorldSeasonSync.reset();
+			MadokuAPIManager.reset();
+			MadokuAPIManager.loadPersistedData(server);
+			MadokuAPIManager.onServerStarted(server);
 			WorldSeasonSync.broadcastNow(server);
 		});
 
-		ServerLifecycleEvents.SERVER_STOPPING.register(ChunkManagerSystem::onServerStopping);
+		ServerLifecycleEvents.SERVER_STOPPING.register(MadokuAPIManager::onServerStopping);
 
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
-			MadokuTime.savePersistedData(server);
-			MadokuSeason.savePersistedData(server);
-			ChunkManagerSystem.savePersistedData(server);
-			SchedulerManagerSystem.savePersistedData(server);
-			MadokuClock.reset();
-			MadokuTicks.reset();
-			MadokuSleep.reset();
-			MadokuTime.reset();
-			MadokuSeason.reset();
-			ChunkManagerSystem.reset();
-			SchedulerManagerSystem.reset();
+			MadokuAPIManager.reset();
 			WorldSeasonSync.reset();
 		});
 
+		ServerTickEvents.START_SERVER_TICK.register(SleepManager::refreshTickIncrement);
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
-			long tickIncrement = MadokuSleep.getTickIncrement(server);
-			MadokuTicks.advance(server, tickIncrement);
-			MadokuTime.update(server);
-			if (MadokuTime.isEnabled()) {
-				SchedulerManagerSystem.onClockTick(server);
-			} else {
-				SchedulerManagerSystem.onServerTick(server);
-			}
-			SchedulerManagerSystem.autosavePersistedData(server);
-			ChunkManagerSystem.autosavePersistedData(server);
-			MadokuTime.autosavePersistedData(server);
-			MadokuSeason.autosavePersistedData(server);
-			MadokuSeason.onServerTick(server);
+			MadokuTimeManager.advance(server, SleepManager.getCachedTickIncrement());
+			MadokuTimeManager.update(server);
+			MadokuAPIManager.onServerTick(server);
+			MadokuAPIManager.autosavePersistedData(server);
+			MadokuSeasonManager.onServerTick(server);
 			WorldSeasonSync.broadcastIfChanged(server);
 		});
 	}

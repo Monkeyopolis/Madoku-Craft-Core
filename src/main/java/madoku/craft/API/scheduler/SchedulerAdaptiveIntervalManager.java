@@ -1,13 +1,13 @@
-package madoku.craft.scheduler;
+package madoku.craft.api.scheduler;
 
-import madoku.craft.clock.MadokuTicks;
+import madoku.craft.api.time.MadokuTimeManager;
 import net.minecraft.server.MinecraftServer;
 import java.lang.reflect.Method;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class AdaptiveSchedulerInterval {
+public final class SchedulerAdaptiveIntervalManager {
 	private static final float LOW_LOAD_MSPT = 30.0f;
 	private static final float HIGH_LOAD_MSPT = 55.0f;
 	private static final float HEALTHY_MSPT = 42.0f;
@@ -23,7 +23,7 @@ public final class AdaptiveSchedulerInterval {
 	private static final long SAFE_FLOOR_RELAX_TICKS = 1200L;
 	private static final Map<String, IntervalState> STATES = new ConcurrentHashMap<>();
 
-	private AdaptiveSchedulerInterval() {
+	private SchedulerAdaptiveIntervalManager() {
 	}
 
 	public static long resolve(String systemId, MinecraftServer server, long minimumIntervalTicks, long maximumIntervalTicks) {
@@ -33,7 +33,7 @@ public final class AdaptiveSchedulerInterval {
 			return min;
 		}
 		String normalizedSystemId = normalizeSystemId(systemId);
-		long nowTick = Math.max(0L, MadokuTicks.getGameplayTicks());
+		long nowTick = Math.max(0L, MadokuTimeManager.getGameplayTicks());
 		IntervalState state = STATES.computeIfAbsent(normalizedSystemId, ignored -> IntervalState.initial(nowTick, min));
 		return state.resolve(server, nowTick, min, max);
 	}
@@ -320,3 +320,5 @@ public final class AdaptiveSchedulerInterval {
 		return sum / count;
 	}
 }
+
+

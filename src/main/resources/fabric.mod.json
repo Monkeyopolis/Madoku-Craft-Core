@@ -15,7 +15,7 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"madoku.craft.API.MadokuCraftAPI"
+			"madoku.craft.api.MadokuCraftAPI"
 		]
 	},
 	"mixins": [

@@ -3,7 +3,6 @@
   "package": "madoku.craft.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "GameRuleCommandLockMixin",
     "PlayerSleepTickMixin",
     "ServerPlayerSleepTimeMixin",
     "BiomeSeasonalPrecipitationMixin",
@@ -11,7 +10,9 @@
     "IceBlockSeasonalMeltMixin",
     "SnowLayerBlockSeasonalMeltMixin",
     "RecipeManagerRecipeOverridesMixin",
-    "LevelChunkDiscoveryCacheSyncMixin",
+    "LevelSeasonalPrecipitationMixin",
+    "ServerClockManagerMixin",
+    "TimelineMixin",
     "LootTableDynamicMixin",
     "RandomizableContainerLootMixin",
     "ContainerEntityLootMixin"

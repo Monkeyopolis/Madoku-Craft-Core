@@ -1,13 +1,11 @@
 package madoku.craft.loot.system;
 
+import madoku.craft.api.json.MadokuJSONManager;
+import madoku.craft.api.json.JSONFormatManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import madoku.craft.config.DynamicStaticSystem;
-import madoku.craft.config.JsonManagerSystem;
-import madoku.craft.config.JsonStaticSystem;
-import madoku.craft.debug.MadokuDebug;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -15,7 +13,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -47,7 +44,6 @@ public final class MadokuLootTableEntities {
 	private static final String LOOT_CONFIG_TABLES_FOLDER_NAME = "madoku-entities";
 	private static final String ENTITY_LOOT_NAMESPACE = "minecraft";
 	private static final String ENTITY_LOOT_PREFIX = "minecraft:entities/";
-	private static final String METRIC_LOOT_CONTEXT_PROBE = "mob.loot_context_probe";
 	private static final long RELOAD_INTERVAL_MILLIS = 1_500L;
 
 	private static volatile Settings settings = Settings.defaults();
@@ -93,20 +89,17 @@ public final class MadokuLootTableEntities {
 
 	public static List<ItemStack> generateManagedLootForContext(LootContext lootContext) {
 		if (lootContext == null) {
-			emitLootContextProbe(null, "skip_null_context", "", null, false, "", "none", null, true);
 			return null;
 		}
 
 		reloadIfNeeded();
 		Settings activeSettings = settings;
 		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
-			emitLootContextProbe(lootContext, "skip_settings_disabled", "", null, false, "", "none", null, true);
 			return null;
 		}
 
 		String tableId = resolveQueriedLootTableId(lootContext);
 		if (tableId.isBlank()) {
-			emitLootContextProbe(lootContext, "skip_blank_table_id", tableId, null, false, "", "none", null, true);
 			return null;
 		}
 
@@ -136,41 +129,6 @@ public final class MadokuLootTableEntities {
 		}
 		RandomSource resolvedRandom = random == null ? RandomSource.create() : random;
 		return rollManagedLootTable(managed, resolvedRandom, player, activeSettings);
-	}
-
-	private static void emitLootContextProbe(
-		LootContext lootContext,
-		String phase,
-		String queriedLootTableId,
-		LivingEntity thisEntity,
-		boolean customDropsEnabled,
-		String configuredReference,
-		String resolutionSource,
-		ManagedLootTable managed,
-		boolean vanillaFallback
-	) {
-		if (!MadokuDebug.shouldEmit(MadokuDebug.Domain.MOB, METRIC_LOOT_CONTEXT_PROBE)) {
-			return;
-		}
-		String subject = thisEntity == null ? "loot-context:no-entity" : "loot-context:" + thisEntity.getUUID();
-		MadokuDebug.EventBuilder event = MadokuDebug.event(METRIC_LOOT_CONTEXT_PROBE, MadokuDebug.Domain.MOB)
-			.side(MadokuDebug.Side.SERVER)
-			.subject(subject)
-			.field("phase", phase == null || phase.isBlank() ? "unknown" : phase)
-			.field("queried_loot_table_id", queriedLootTableId == null || queriedLootTableId.isBlank() ? "unset" : queriedLootTableId)
-			.field("has_this_entity", thisEntity != null)
-			.field("this_entity_type", thisEntity == null ? "none" : thisEntity.getType().toShortString())
-			.field("this_entity_is_baby", thisEntity instanceof net.minecraft.world.entity.AgeableMob ageableMob && ageableMob.isBaby())
-			.field("custom_drops_enabled", customDropsEnabled)
-			.field("configured_reference", configuredReference == null || configuredReference.isBlank() ? "unset" : configuredReference)
-			.field("resolution_source", resolutionSource == null || resolutionSource.isBlank() ? "none" : resolutionSource)
-			.field("resolved_managed_table", managed == null ? "none" : managed.tableId())
-			.field("vanilla_fallback", vanillaFallback);
-		ServerLevel level = lootContext == null ? null : lootContext.getLevel();
-		if (level != null) {
-			event.tick(level.getGameTime()).world(level.dimension().toString());
-		}
-		event.log();
 	}
 
 	private static void fillContainer(Container container, List<ItemStack> generated, RandomSource random) {
@@ -597,17 +555,17 @@ public final class MadokuLootTableEntities {
 	private static synchronized void reloadNow() {
 		long now = System.currentTimeMillis();
 		try {
-			Path rootDirectory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
+			Path rootDirectory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
 			Path settingsFile = resolveJsonFile(rootDirectory, LOOT_CONFIG_SETTINGS_FILE_NAME);
 			JsonObject defaults = LootTableConfigManager.buildSettingsDefaults();
-			JsonObject normalizedSettings = JsonStaticSystem.ensureManagedFile(settingsFile, defaults);
+			JsonObject normalizedSettings = JSONFormatManager.ensureManagedFile(settingsFile, defaults);
 			Settings loadedSettings = Settings.fromJson(normalizedSettings);
-			JsonStaticSystem.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
+			JSONFormatManager.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
 
 			Path tablesDirectory = rootDirectory.resolve(LOOT_CONFIG_TABLES_FOLDER_NAME);
 			Map<String, JsonObject> staticDefaults = buildEntityStaticDefaults();
 
-			Map<String, JsonObject> normalizedFiles = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedFiles = JSONFormatManager.ensureManagedFolder(
 				tablesDirectory,
 				staticDefaults,
 				ignored -> new JsonObject(),
@@ -1095,7 +1053,5 @@ public final class MadokuLootTableEntities {
 		}
 	}
 }
-
-
 
 

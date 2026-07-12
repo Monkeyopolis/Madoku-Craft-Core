@@ -1,12 +1,11 @@
 package madoku.craft.loot.system;
 
+import madoku.craft.api.json.MadokuJSONManager;
+import madoku.craft.api.json.JSONFormatManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import madoku.craft.config.DynamicStaticSystem;
-import madoku.craft.config.JsonManagerSystem;
-import madoku.craft.config.JsonStaticSystem;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -545,17 +544,17 @@ public final class MadokuLootTableStructures {
 	private static synchronized void reloadNow() {
 		long now = System.currentTimeMillis();
 		try {
-			Path rootDirectory = JsonManagerSystem.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
+			Path rootDirectory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
 			Path settingsFile = resolveJsonFile(rootDirectory, LOOT_CONFIG_SETTINGS_FILE_NAME);
 			JsonObject defaults = LootTableConfigManager.buildSettingsDefaults();
-			JsonObject normalizedSettings = JsonStaticSystem.ensureManagedFile(settingsFile, defaults);
+			JsonObject normalizedSettings = JSONFormatManager.ensureManagedFile(settingsFile, defaults);
 			Settings loadedSettings = Settings.fromJson(normalizedSettings);
-			JsonStaticSystem.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
+			JSONFormatManager.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
 
 			Path tablesDirectory = rootDirectory.resolve(LOOT_CONFIG_TABLES_FOLDER_NAME);
 			Map<String, JsonObject> staticDefaults = buildStructureChestStaticDefaults();
 
-			Map<String, JsonObject> normalizedFiles = DynamicStaticSystem.ensureManagedFolder(
+			Map<String, JsonObject> normalizedFiles = JSONFormatManager.ensureManagedFolder(
 				tablesDirectory,
 				staticDefaults,
 				ignored -> new JsonObject(),
@@ -1044,5 +1043,4 @@ public final class MadokuLootTableStructures {
 		}
 	}
 }
-
 
