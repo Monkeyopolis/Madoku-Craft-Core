@@ -10,7 +10,7 @@ import net.minecraft.world.clock.ClockTimeMarkers;
 
 import java.util.function.Consumer;
 
-public final class TimeManager {
+public final class TimeClockManager {
 	public static final long TICKS_PER_SECOND = 20L;
 	public static final long SECONDS_PER_MINUTE = 60L;
 	public static final long MINECRAFT_TICKS_PER_CYCLE = 24000L;
@@ -27,7 +27,7 @@ public final class TimeManager {
 	private static volatile long lastObservedGameplayTicks = 0L;
 	private static volatile long lastGameplayTickDelta = 0L;
 
-	private TimeManager() {
+	private TimeClockManager() {
 	}
 
 	public static void initialize() {
@@ -79,7 +79,7 @@ public final class TimeManager {
 		observeGameplayTicks(getGameplayTicks());
 		long observedDayTime = overworld.getOverworldClockTime();
 		observeWorldTime(observedDayTime);
-		SleepManager.onWorldTimeAdvanced(server, observedDayTime);
+		TimeSleepManager.onWorldTimeAdvanced(server, observedDayTime);
 
 		if (!isEnabled()) {
 			return;
@@ -130,7 +130,7 @@ public final class TimeManager {
 			: TimeConfigManager.getNightMinutes() * TimeConfigManager.getSeasonalNightMultiplier(seasonId);
 		long segmentWorldTicks = daytime ? resolveDayWorldTickSpan() : resolveNightWorldTickSpan();
 		double baseRate = resolveDesiredTicksPerServerTick(segmentMinutes, segmentWorldTicks);
-		double sleepMultiplier = Math.max(1L, SleepManager.getCachedTickIncrement());
+		double sleepMultiplier = Math.max(1L, TimeSleepManager.getCachedTickIncrement());
 		double resolvedRate = baseRate * sleepMultiplier;
 		if (!Double.isFinite(resolvedRate) || resolvedRate <= 0.0D) {
 			emitTimeDebug("resolveWorldClockRate", builder -> builder
@@ -415,5 +415,4 @@ public final class TimeManager {
 		builder.log();
 	}
 }
-
 
