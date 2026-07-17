@@ -3,12 +3,20 @@
   "package": "madoku.craft.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "GameRuleCommandLockMixin",
     "PlayerSleepTickMixin",
     "ServerPlayerSleepTimeMixin",
-    "BiomeSeasonalPrecipitationMixin",
-    "ServerLevelSeasonalPrecipitationMixin"
-  ],
+		"BiomeSeasonalFreezeMixin",
+    "IceBlockSeasonalMeltMixin",
+    "SnowLayerBlockSeasonalMeltMixin",
+    "RecipeManagerRecipeOverridesMixin",
+    "LevelSeasonalPrecipitationMixin",
+    "LootTableDynamicMixin",
+    "RandomizableContainerLootMixin",
+		"ContainerEntityLootMixin"
+	],
+	"client": [
+		"client.BiomeSeasonalPrecipitationMixin"
+	],
   "injectors": {
     "defaultRequire": 1
   }
