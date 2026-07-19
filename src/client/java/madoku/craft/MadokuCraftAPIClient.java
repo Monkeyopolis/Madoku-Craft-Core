@@ -22,7 +22,10 @@ public final class MadokuCraftAPIClient implements ClientModInitializer {
 				ClientSeasonalPrecipitationState.update(
 					payload.season(),
 					payload.temperatureOffset(),
-					payload.humidityOffset());
+					payload.humidityOffset(),
+					payload.weatherCondition(),
+					payload.seasonDay(),
+					payload.seasonLengthDays());
 				ClientSeasonalPrecipitationState.refresh(context.client().level);
 			})
 		);

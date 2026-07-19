@@ -30,6 +30,7 @@ public class MadokuCraftAPI implements ModInitializer {
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> MadokuAPIManager.reset());
 
 		ServerTickEvents.START_SERVER_TICK.register(TimeSleepManager::refreshTickIncrement);
+		ServerTickEvents.START_SERVER_TICK.register(MadokuSeasonManager::onServerStartTick);
 
 		ServerTickEvents.END_SERVER_TICK.register(server -> {
 			MadokuTimeManager.advance(server, TimeSleepManager.getCachedTickIncrement());
