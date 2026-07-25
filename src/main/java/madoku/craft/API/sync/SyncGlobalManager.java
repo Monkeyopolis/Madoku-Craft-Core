@@ -1,6 +1,5 @@
 package madoku.craft.api.sync;
 
-import madoku.craft.api.debug.MadokuDebugManager;
 import madoku.craft.api.season.SeasonPayloadManager;
 import madoku.craft.api.time.MadokuTimeManager;
 import madoku.craft.api.time.TimePayloadManager;
@@ -28,7 +27,6 @@ public final class SyncGlobalManager {
 		}
 		registerPayloadTypes();
 		initialized = true;
-		emitDebug("initialize", builder -> builder.field("clientbound-payloads", 2));
 	}
 
 	public static void initializeClient() {
@@ -40,15 +38,12 @@ public final class SyncGlobalManager {
 	}
 
 	public static void reset() {
-		emitDebug("reset", builder -> builder.field("initialized", initialized));
 	}
 
 	public static void onServerStarted(MinecraftServer server) {
-		emitDebug("server-started", builder -> builder.field("players", playerCount(server)));
 	}
 
 	public static void onServerStopping(MinecraftServer server) {
-		emitDebug("server-stopping", builder -> builder.field("players", playerCount(server)));
 	}
 
 	public static boolean canSend(ServerPlayer player, CustomPacketPayload payload) {
@@ -92,16 +87,4 @@ public final class SyncGlobalManager {
 		return server == null ? 0 : server.getPlayerList().getPlayers().size();
 	}
 
-	private static void emitDebug(String entry, java.util.function.Consumer<MadokuDebugManager.EventBuilder> customizer) {
-		if (!MadokuDebugManager.shouldEmit(DEBUG_MAIN_SYSTEM, DEBUG_SUB_SYSTEM, DEBUG_GROUP, entry)) {
-			return;
-		}
-		MadokuDebugManager.EventBuilder builder = MadokuDebugManager.event(
-			"sync.global", DEBUG_MAIN_SYSTEM, DEBUG_SUB_SYSTEM, DEBUG_GROUP, entry
-		).side(MadokuDebugManager.Side.SERVER).tick(MadokuTimeManager.getGameplayTicks()).subject(entry);
-		if (customizer != null) {
-			customizer.accept(builder);
-		}
-		builder.log();
-	}
 }

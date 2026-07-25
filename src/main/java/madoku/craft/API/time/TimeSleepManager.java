@@ -1,6 +1,5 @@
 package madoku.craft.api.time;
 
-import madoku.craft.api.debug.MadokuDebugManager;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -12,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
-import java.util.function.Consumer;
 
 public final class TimeSleepManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TimeSleepManager.class);
@@ -33,9 +31,6 @@ public final class TimeSleepManager {
 		fractionalCarry = 0.0D;
 		cachedTickIncrement = 1L;
 		wakeTargetWorldTime = -1L;
-		emitSleepDebug("reset", builder -> builder
-			.subject("reset")
-			.field("carry", 0.0D));
 	}
 
 	public static boolean isEnabled() {
@@ -44,12 +39,6 @@ public final class TimeSleepManager {
 
 	public static boolean shouldAllowResettingTime(Player player) {
 		boolean allowed = !isForwardTimeActive();
-		emitSleepDebug("shouldAllowResettingTime", builder -> builder
-			.subject(player == null ? "unknown" : "player")
-			.field("allowed", allowed)
-			.field("day-cycle-enabled", MadokuTimeManager.isEnabled())
-			.field("sleep-enabled", TimeConfigManager.isSleepEnabled())
-			.field("forward-time-enabled", TimeConfigManager.isForwardTimeEnabled()));
 		return allowed;
 	}
 
@@ -95,12 +84,6 @@ public final class TimeSleepManager {
 		long wholeTicks = (long) Math.floor(totalTicks);
 		fractionalCarry = totalTicks - wholeTicks;
 		long result = Math.max(1L, wholeTicks);
-		emitSleepDebug("getTickIncrement", builder -> builder
-			.subject("forward-time")
-			.field("players", totalPlayers)
-			.field("sleeping", sleepingPlayers)
-			.field("speed-multiplier", resolvedSpeedMultiplier)
-			.field("tick-increment", result));
 		return result;
 	}
 
@@ -166,10 +149,6 @@ public final class TimeSleepManager {
 			currentTime,
 			wakeTargetWorldTime
 		);
-		emitSleepDebug("sleepStarted", builder -> builder
-			.subject("sleep-started")
-			.field("world-time", currentTime)
-			.field("wake-target", wakeTargetWorldTime));
 	}
 
 	public static void onWorldTimeAdvanced(MinecraftServer server, long absoluteDayTime) {
@@ -213,11 +192,6 @@ public final class TimeSleepManager {
 				finalWakeTarget,
 				TimeConfigManager.shouldClearWeather()
 			);
-			emitSleepDebug("onWorldTimeAdvanced", builder -> builder
-				.subject("wake")
-				.field("daytime", absoluteDayTime)
-				.field("wake-target", finalWakeTarget)
-				.field("cleared-weather", TimeConfigManager.shouldClearWeather()));
 		}
 	}
 
@@ -257,15 +231,6 @@ public final class TimeSleepManager {
 			final int finalThunderTime = weatherData == null ? -1 : weatherData.getThunderTime();
 			final boolean finalRaining = weatherData != null && weatherData.isRaining();
 			final int finalRainTime = weatherData == null ? -1 : weatherData.getRainTime();
-			emitSleepDebug("clearWeather", builder -> builder
-				.subject("weather")
-				.field("world-weather-parameters", finalWorldWeatherSet)
-				.field("weather-data", finalWeatherDataSet)
-				.field("clear-weather-time", finalClearWeatherTime)
-				.field("thundering", finalThundering)
-				.field("thunder-time", finalThunderTime)
-				.field("raining", finalRaining)
-				.field("rain-time", finalRainTime));
 		} catch (RuntimeException exception) {
 			LOGGER.warn("Failed to clear weather after sleep forward-time.", exception);
 		}
@@ -334,17 +299,4 @@ public final class TimeSleepManager {
 			&& TimeConfigManager.isSleepTimeTransitionsEnabled();
 	}
 
-	private static void emitSleepDebug(String metricId, Consumer<MadokuDebugManager.EventBuilder> customizer) {
-		String entry = MadokuDebugManager.resolveCallerMethodName(1);
-		if (!MadokuDebugManager.shouldEmit("api", "time-manager", DEBUG_SUB_SYSTEM, entry)) {
-			return;
-		}
-		MadokuDebugManager.EventBuilder builder = MadokuDebugManager.event(metricId, "api", "time-manager", DEBUG_SUB_SYSTEM, entry)
-			.side(MadokuDebugManager.Side.SERVER);
-		if (customizer != null) {
-			customizer.accept(builder);
-		}
-		builder.log();
-	}
 }
-
