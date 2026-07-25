@@ -14,7 +14,6 @@ import java.lang.reflect.Method;
 
 public final class TimeSleepManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TimeSleepManager.class);
-	private static final String DEBUG_SUB_SYSTEM = "sleep-manager";
 	private static final double SLEEP_SPEED_MULTIPLIER = 100.0D;
 	private static final long MINECRAFT_TICKS_PER_CYCLE = 24000L;
 	private static final int MINECRAFT_CLOCK_ZERO_OFFSET_MINUTES = 6 * 60;
@@ -208,29 +207,20 @@ public final class TimeSleepManager {
 	private static void clearWeather(ServerLevel level) {
 		try {
 			MinecraftServer server = level.getServer();
-			boolean worldWeatherSet = invokeWeatherSetter(
+			invokeWeatherSetter(
 				server,
 				"setWeatherParameters",
 				new Class<?>[] { int.class, int.class, boolean.class, boolean.class },
 				new Object[] { 0, 0, false, false }
 			);
 			WeatherData weatherData = level.getWeatherData();
-			boolean weatherDataSet = false;
 			if (weatherData != null) {
 				weatherData.setClearWeatherTime(0);
 				weatherData.setThundering(false);
 				weatherData.setThunderTime(0);
 				weatherData.setRaining(false);
 				weatherData.setRainTime(0);
-				weatherDataSet = true;
 			}
-			final boolean finalWorldWeatherSet = worldWeatherSet;
-			final boolean finalWeatherDataSet = weatherDataSet;
-			final int finalClearWeatherTime = weatherData == null ? -1 : weatherData.getClearWeatherTime();
-			final boolean finalThundering = weatherData != null && weatherData.isThundering();
-			final int finalThunderTime = weatherData == null ? -1 : weatherData.getThunderTime();
-			final boolean finalRaining = weatherData != null && weatherData.isRaining();
-			final int finalRainTime = weatherData == null ? -1 : weatherData.getRainTime();
 		} catch (RuntimeException exception) {
 			LOGGER.warn("Failed to clear weather after sleep forward-time.", exception);
 		}

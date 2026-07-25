@@ -121,7 +121,6 @@ public final class SeasonWeatherManager {
 		lastObservedAbsoluteTime = now;
 
 		if (currentCondition != null && now >= conditionEndAbsoluteTime) {
-			WeatherCondition previous = currentCondition;
 			currentCondition = null;
 			conditionEndAbsoluteTime = -1L;
 			nextEvaluationAbsoluteTime = safeAdd(now, resolveMinutesToTicks(WeatherConfigManager.getSettings().timeRateMinutes()));

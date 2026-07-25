@@ -15,8 +15,6 @@ public final class TimeClockManager {
 	private static final long CYCLE_MINUTES_PER_DAY = 24L;
 	private static final long MINUTES_PER_DAY = 24L * 60L;
 	private static final int MINECRAFT_CLOCK_ZERO_OFFSET_MINUTES = 6 * 60;
-	private static final String DEBUG_SUB_SYSTEM = "time-manager";
-
 	private static volatile long gameplayTicks = 0L;
 	private static volatile boolean hasObservedWorldTime = false;
 	private static volatile long lastObservedWorldDayTime = 0L;
@@ -33,8 +31,6 @@ public final class TimeClockManager {
 	}
 
 	public static void reset() {
-		long previousWorldTime = lastObservedWorldDayTime;
-		long previousGameplayTicks = lastObservedGameplayTicks;
 		resetRuntimeState();
 	}
 
@@ -64,16 +60,6 @@ public final class TimeClockManager {
 			return;
 		}
 
-		String seasonId = MadokuSeasonManager.getCurrentSeasonId();
-		int clockTotalMinutes = getTotalMinutes(observedDayTime);
-		int clockHour = getClockHour(observedDayTime);
-		int clockMinute = Math.floorMod(clockTotalMinutes, 60);
-		boolean daytime = isDaytime(clockHour);
-		double segmentMinutes = daytime
-			? TimeConfigManager.getDayMinutes() * TimeConfigManager.getSeasonalDayMultiplier(seasonId)
-			: TimeConfigManager.getNightMinutes() * TimeConfigManager.getSeasonalNightMultiplier(seasonId);
-		long segmentWorldTicks = daytime ? resolveDayWorldTickSpan() : resolveNightWorldTickSpan();
-		double desiredTicksPerServerTick = resolveDesiredTicksPerServerTick(segmentMinutes, segmentWorldTicks);
 	}
 
 	public static float resolveWorldClockRate(MinecraftServer server) {
@@ -88,9 +74,7 @@ public final class TimeClockManager {
 
 		long currentDayTime = overworld.getOverworldClockTime();
 		String seasonId = MadokuSeasonManager.getCurrentSeasonId();
-		int clockTotalMinutes = getTotalMinutes(currentDayTime);
 		int clockHour = getClockHour(currentDayTime);
-		int clockMinute = Math.floorMod(clockTotalMinutes, 60);
 		boolean daytime = isDaytime(clockHour);
 		double segmentMinutes = daytime
 			? TimeConfigManager.getDayMinutes() * TimeConfigManager.getSeasonalDayMultiplier(seasonId)

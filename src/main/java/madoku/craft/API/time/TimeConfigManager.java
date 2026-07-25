@@ -15,7 +15,6 @@ import java.nio.file.Path;
 
 public final class TimeConfigManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(TimeConfigManager.class);
-	private static final String DEBUG_SUB_SYSTEM = "time-config-manager";
 	private static final String TIME_CONFIG_FOLDER_NAME = MadokuAPIManager.API_FOLDER_NAME + "/madoku-time";
 	private static final String TIME_CONFIG_FILE_NAME = "madoku-time";
 	private static final long TICKS_PER_MINUTE = MadokuTimeManager.TICKS_PER_SECOND * MadokuTimeManager.SECONDS_PER_MINUTE;

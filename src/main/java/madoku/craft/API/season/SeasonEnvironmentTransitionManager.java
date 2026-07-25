@@ -43,8 +43,6 @@ public final class SeasonEnvironmentTransitionManager {
 		// The first transition is active on season day 0; subsequent transitions
 		// begin at each configured time-rate boundary.
 		int count = Math.min(settings.adjustmentCount(), elapsedIntervals + 1);
-		double previousTemperatureOffset = temperatureOffset;
-		double previousHumidityOffset = humidityOffset;
 		temperatureOffset = settings.temperatureEnabled() && settings.seasonTransitionsEnabled()
 			? resolveSmoothSeasonalOffset(settings.temperatureAdjustments(), state, count, settings.adjustmentCount(), timeRateDays, seasonLengthDays) : 0.0;
 		humidityOffset = settings.humidityEnabled() && settings.seasonTransitionsEnabled()

@@ -9,9 +9,6 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** Owns world-scoped synchronization transport and adaptive periodic passes. */
 public final class SyncWorldManager {
-	private static final String DEBUG_MAIN_SYSTEM = "api";
-	private static final String DEBUG_SUB_SYSTEM = "sync-manager";
-	private static final String DEBUG_GROUP = "sync-world-manager";
 	private static final String ADAPTIVE_OWNER_ID = "api.sync.world";
 	private static final long MIN_PERIODIC_INTERVAL_TICKS = 1L;
 	private static final long MAX_PERIODIC_INTERVAL_TICKS = 5L;
@@ -66,10 +63,6 @@ public final class SyncWorldManager {
 
 	public static int broadcast(MinecraftServer server, CustomPacketPayload payload) {
 		return SyncGlobalManager.broadcast(server, payload);
-	}
-
-	private static int playerCount(MinecraftServer server) {
-		return server == null ? 0 : server.getPlayerList().getPlayers().size();
 	}
 
 }

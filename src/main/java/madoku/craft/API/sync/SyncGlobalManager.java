@@ -1,7 +1,6 @@
 package madoku.craft.api.sync;
 
 import madoku.craft.api.season.SeasonPayloadManager;
-import madoku.craft.api.time.MadokuTimeManager;
 import madoku.craft.api.time.TimePayloadManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -13,9 +12,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Owns registration and transport for the API's shared payloads. */
 public final class SyncGlobalManager {
-	private static final String DEBUG_MAIN_SYSTEM = "api";
-	private static final String DEBUG_SUB_SYSTEM = "sync-manager";
-	private static final String DEBUG_GROUP = "sync-global-manager";
 	private static volatile boolean initialized;
 
 	private SyncGlobalManager() {
@@ -81,10 +77,6 @@ public final class SyncGlobalManager {
 		StreamCodec<RegistryFriendlyByteBuf, T> codec
 	) {
 		PayloadTypeRegistry.clientboundPlay().register(type, codec);
-	}
-
-	private static int playerCount(MinecraftServer server) {
-		return server == null ? 0 : server.getPlayerList().getPlayers().size();
 	}
 
 }

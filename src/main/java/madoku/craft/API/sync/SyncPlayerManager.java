@@ -9,9 +9,6 @@ import net.minecraft.server.level.ServerPlayer;
 
 /** Owns player-targeted synchronization transport and adaptive dirty flush timing. */
 public final class SyncPlayerManager {
-	private static final String DEBUG_MAIN_SYSTEM = "api";
-	private static final String DEBUG_SUB_SYSTEM = "sync-manager";
-	private static final String DEBUG_GROUP = "sync-player-manager";
 	private static final String ADAPTIVE_OWNER_ID = "api.sync.player";
 	private static final long MIN_DIRTY_FLUSH_INTERVAL_TICKS = 1L;
 	private static final long MAX_DIRTY_FLUSH_INTERVAL_TICKS = 5L;
@@ -63,10 +60,6 @@ public final class SyncPlayerManager {
 
 	public static boolean send(ServerPlayer player, CustomPacketPayload payload) {
 		return SyncGlobalManager.send(player, payload);
-	}
-
-	private static int playerCount(MinecraftServer server) {
-		return server == null ? 0 : server.getPlayerList().getPlayers().size();
 	}
 
 }
