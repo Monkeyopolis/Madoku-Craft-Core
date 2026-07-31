@@ -61,6 +61,9 @@ public final class ClientSeasonalPrecipitationState {
 		if (biome == null || season.isBlank()) {
 			return Biome.Precipitation.NONE;
 		}
+		if (!SeasonEnvironmentTransitionManager.isWeatherTransitionEnabled()) {
+			return SeasonEnvironmentTransitionManager.resolvePrecipitation(biome, season);
+		}
 		SeasonBiomeClimateManager.Climate climate = climates.get(biome);
 		if (climate == null) {
 			climate = SeasonBiomeClimateManager.nativeClimate(biome);

@@ -10,6 +10,7 @@ Dedicated JSON file system.
 
 Dedicated Data system.
 - This system manages how a world's save data is created, updated, and deleted.
+- It creates world chunk and player data.
 
 Dedicated Scheduler system.
 - This system manages how and when tick related events are executed.
