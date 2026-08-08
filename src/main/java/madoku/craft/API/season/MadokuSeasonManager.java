@@ -57,9 +57,10 @@ public final class MadokuSeasonManager {
 	public static SeasonBiomeClimateManager.Climate resolveBiomeClimate(ServerLevel level, BlockPos pos) {
 		SeasonBiomeClimateManager.Climate climate = SeasonBiomeClimateManager.resolve(level, pos);
 		String season = getCurrentSeasonId(level);
-		return new SeasonBiomeClimateManager.Climate(
+		SeasonBiomeClimateManager.Climate adjustedClimate = new SeasonBiomeClimateManager.Climate(
 			SeasonEnvironmentTransitionManager.adjustTemperature(climate.temperature(), season, MadokuTimeManager.getCurrentAbsoluteDayTime(level)),
 			SeasonEnvironmentTransitionManager.adjustHumidity(climate.humidity(), season));
+		return SeasonEnvironmentTransitionManager.adjustForShelter(level, pos, adjustedClimate);
 	}
 
 	public static Biome.Precipitation resolveSeasonalPrecipitation(Biome biome) {

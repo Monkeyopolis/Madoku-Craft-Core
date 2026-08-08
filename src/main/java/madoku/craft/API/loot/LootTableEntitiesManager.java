@@ -1,11 +1,11 @@
-package madoku.craft.loot.system;
+package madoku.craft.api.loot;
 
-import madoku.craft.api.json.MadokuJSONManager;
-import madoku.craft.api.json.JSONFormatManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import madoku.craft.api.json.JSONFormatManager;
+import madoku.craft.api.json.MadokuJSONManager;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
@@ -27,7 +27,6 @@ import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,25 +35,31 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
-public final class MadokuLootTableStructures {
-	private static final Logger LOGGER = LoggerFactory.getLogger(MadokuLootTableStructures.class);
+public final class LootTableEntitiesManager {
+	private static final Logger LOGGER = LoggerFactory.getLogger(LootTableEntitiesManager.class);
 
-	private static final String LOOT_CONFIG_ROOT_FOLDER_NAME = "madoku-craft-loot-tables";
+	private static final String LOOT_CONFIG_ROOT_FOLDER_NAME = MadokuLootTableManager.CONFIG_ROOT_FOLDER_NAME;
 	private static final String LOOT_CONFIG_SETTINGS_FILE_NAME = "madoku-loot-tables";
-	private static final String LOOT_CONFIG_TABLES_FOLDER_NAME = "madoku-structures";
-	private static final String STRUCTURE_CHEST_NAMESPACE = "minecraft";
-	private static final String STRUCTURE_CHEST_PREFIX = "minecraft:structure_chests/";
-	private static final long RELOAD_INTERVAL_MILLIS = 1_500L;
-
+	private static final String LOOT_CONFIG_TABLES_FOLDER_NAME = "madoku-entities";
+	private static final String ENTITY_LOOT_NAMESPACE = "minecraft";
+	private static final String ENTITY_LOOT_PREFIX = "minecraft:entities/";
 	private static volatile Settings settings = Settings.defaults();
 	private static volatile Map<String, ManagedLootTable> tablesById = Map.of();
+	private static volatile Map<String, ManagedLootTable> tablesByFileKey = Map.of();
 	private static volatile long nextReloadAtMillis;
 
-	private MadokuLootTableStructures() {
+	private LootTableEntitiesManager() {
 	}
 
 	public static void initialize() {
-		reloadNow();
+		reloadNow(null);
+	}
+
+	public static void reset() {
+		settings = Settings.defaults();
+		tablesById = Map.of();
+		tablesByFileKey = Map.of();
+		nextReloadAtMillis = 0L;
 	}
 
 	public static boolean applyManagedLootTable(
@@ -68,9 +73,9 @@ public final class MadokuLootTableStructures {
 			return false;
 		}
 
-		reloadIfNeeded();
+		reloadIfNeeded(level.getServer());
 		Settings activeSettings = settings;
-		if (!activeSettings.enabled || !activeSettings.overrideStructureLootTables) {
+		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
 			return false;
 		}
 
@@ -91,9 +96,10 @@ public final class MadokuLootTableStructures {
 			return null;
 		}
 
-		reloadIfNeeded();
+		ServerLevel contextLevel = lootContext.getLevel();
+		reloadIfNeeded(contextLevel == null ? null : contextLevel.getServer());
 		Settings activeSettings = settings;
-		if (!activeSettings.enabled || !activeSettings.overrideStructureLootTables) {
+		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
 			return null;
 		}
 
@@ -114,6 +120,20 @@ public final class MadokuLootTableStructures {
 		}
 		ServerPlayer player = resolveLootContextPlayer(lootContext);
 		return rollManagedLootTable(managed, random, player, activeSettings);
+	}
+
+	public static List<ItemStack> generateManagedLootForReference(String configuredReference, ServerPlayer player, RandomSource random) {
+		reloadIfNeeded(null);
+		Settings activeSettings = settings;
+		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
+			return null;
+		}
+		ManagedLootTable managed = resolveManagedTableByConfigReference(configuredReference);
+		if (managed == null) {
+			return null;
+		}
+		RandomSource resolvedRandom = random == null ? RandomSource.create() : random;
+		return rollManagedLootTable(managed, resolvedRandom, player, activeSettings);
 	}
 
 	private static void fillContainer(Container container, List<ItemStack> generated, RandomSource random) {
@@ -168,15 +188,14 @@ public final class MadokuLootTableStructures {
 	) {
 		boolean luckActive = isLuckActiveForLoot(player, activeSettings);
 		double luckStat = resolveLuckStat(player, activeSettings);
-		return rollTable(managed, random, luckStat, luckActive, activeSettings);
+		return rollTable(managed, random, luckStat, luckActive);
 	}
 
 	private static List<ItemStack> rollTable(
 		ManagedLootTable table,
 		RandomSource random,
 		double luckStat,
-		boolean luckActive,
-		Settings activeSettings
+		boolean luckActive
 	) {
 		if (table == null || random == null || table.groups().isEmpty()) {
 			return List.of();
@@ -188,11 +207,11 @@ public final class MadokuLootTableStructures {
 		if (maxRolls > minRolls) {
 			rolls = minRolls + random.nextInt((maxRolls - minRolls) + 1);
 		}
-		rolls = applyRollLuckMultiplier(rolls, luckStat, luckActive, activeSettings, random);
+		rolls = applyRollLuckMultiplier(rolls, luckStat, luckActive, random);
 
 		List<ItemStack> generated = new ArrayList<>(rolls);
 		for (int roll = 0; roll < rolls; roll++) {
-			ManagedLootGroup group = pickGroup(table.groups(), random, luckStat, luckActive, activeSettings);
+			ManagedLootGroup group = pickGroup(table.groups(), random, luckStat, luckActive);
 			if (group == null) {
 				continue;
 			}
@@ -212,8 +231,7 @@ public final class MadokuLootTableStructures {
 		List<ManagedLootGroup> groups,
 		RandomSource random,
 		double luckStat,
-		boolean luckActive,
-		Settings activeSettings
+		boolean luckActive
 	) {
 		if (groups == null || groups.isEmpty()) {
 			return null;
@@ -229,7 +247,7 @@ public final class MadokuLootTableStructures {
 				effectiveWeights.add(0.0d);
 				continue;
 			}
-			double rarityMultiplier = resolveRarityLuckMultiplier(group.rarity(), luckStat, luckActive, activeSettings);
+			double rarityMultiplier = resolveGroupWeightMultiplier(group.rarity(), luckStat, luckActive);
 			double weight = Math.max(0.0d, group.weight() * rarityMultiplier);
 			effectiveWeights.add(weight);
 			totalWeight += weight;
@@ -291,11 +309,7 @@ public final class MadokuLootTableStructures {
 		return min + random.nextInt((max - min) + 1);
 	}
 
-	public static Map<String, JsonObject> buildDefaultStructureTableFiles() {
-		return LootTableConfigStructures.buildDefaultStructureTableFiles();
-	}
-
-	private static void appendSingleStackForRoll(List<ItemStack> into, Item item, int count, MadokuLootRarity itemRarity) {
+	private static void appendSingleStackForRoll(List<ItemStack> into, Item item, int count, LootTableRarity itemRarity) {
 		if (into == null || item == null || count <= 0) {
 			return;
 		}
@@ -304,10 +318,6 @@ public final class MadokuLootTableStructures {
 		int maxStackSize = Math.max(1, probe.getMaxStackSize());
 		int stackCount = Math.min(maxStackSize, count);
 		ItemStack stack = new ItemStack(item, stackCount);
-		if (itemRarity != null) {
-			MadokuLootHooks.applyConfiguredRarity(stack, itemRarity);
-		}
-		MadokuLootHooks.applySupportedSpawnEggLore(stack);
 		into.add(stack);
 	}
 
@@ -315,13 +325,12 @@ public final class MadokuLootTableStructures {
 		int baseRolls,
 		double luckStat,
 		boolean luckActive,
-		Settings activeSettings,
 		RandomSource random
 	) {
 		if (baseRolls <= 0) {
 			return 0;
 		}
-		double multiplier = resolveRollLuckMultiplier(luckStat, luckActive, activeSettings);
+		double multiplier = resolveRollLuckMultiplier(luckStat, luckActive);
 		if (!Double.isFinite(multiplier)) {
 			return baseRolls;
 		}
@@ -334,42 +343,36 @@ public final class MadokuLootTableStructures {
 		return Math.max(0, whole);
 	}
 
-	private static double resolveRarityLuckMultiplier(
-		MadokuLootRarity rarity,
-		double luckStat,
-		boolean luckActive,
-		Settings activeSettings
-	) {
-		if (!luckActive || rarity == null || activeSettings == null) {
+	private static double resolveRollLuckMultiplier(double luckStat, boolean luckActive) {
+		if (!luckActive || !Double.isFinite(luckStat)) {
 			return 1.0d;
 		}
-
-		LuckCurve curve = activeSettings.rarityCurves.get(rarity);
-		if (curve == null) {
-			return 1.0d;
-		}
-		return Math.max(0.0d, curve.sample(luckStat));
+		return Math.max(0.0d, 1.0d + (Math.max(0.0d, luckStat) * 0.01d));
 	}
 
-	private static double resolveRollLuckMultiplier(double luckStat, boolean luckActive, Settings activeSettings) {
-		if (!luckActive || activeSettings == null || activeSettings.rollCurve == null) {
+	private static double resolveGroupWeightMultiplier(LootTableRarity rarity, double luckStat, boolean luckActive) {
+		if (!luckActive || rarity == null || !Double.isFinite(luckStat)) {
 			return 1.0d;
 		}
-		return Math.max(0.0d, activeSettings.rollCurve.sample(luckStat));
+		double rarityModifier = switch (rarity) {
+			case COMMON -> 0.5d;
+			case RARE -> 0.75d;
+			case EPIC -> 1.25d;
+			case LEGENDARY -> 2.0d;
+			case MYTHIC -> 3.0d;
+		};
+		return Math.max(0.0d, 1.0d + (Math.max(0.0d, luckStat) * 0.01d * rarityModifier));
 	}
 
 	private static boolean isLuckActiveForLoot(ServerPlayer player, Settings activeSettings) {
-		return player != null
-			&& activeSettings != null
-			&& activeSettings.useMadokuLuck
-			&& MadokuLootHooks.isLuckEnabled();
+		return false;
 	}
 
 	private static double resolveLuckStat(ServerPlayer player, Settings activeSettings) {
 		if (!isLuckActiveForLoot(player, activeSettings)) {
 			return 0.0d;
 		}
-		return MadokuLootHooks.resolveLootLuckStat(player);
+		return 0.0d;
 	}
 
 	private static String resolveQueriedLootTableId(LootContext lootContext) {
@@ -533,15 +536,15 @@ public final class MadokuLootTableStructures {
 		return null;
 	}
 
-	private static void reloadIfNeeded() {
+	private static void reloadIfNeeded(net.minecraft.server.MinecraftServer server) {
 		long now = System.currentTimeMillis();
 		if (now < nextReloadAtMillis) {
 			return;
 		}
-		reloadNow();
+		reloadNow(server);
 	}
 
-	private static synchronized void reloadNow() {
+	private static synchronized void reloadNow(net.minecraft.server.MinecraftServer server) {
 		long now = System.currentTimeMillis();
 		try {
 			Path rootDirectory = MadokuJSONManager.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
@@ -552,31 +555,38 @@ public final class MadokuLootTableStructures {
 			JSONFormatManager.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
 
 			Path tablesDirectory = rootDirectory.resolve(LOOT_CONFIG_TABLES_FOLDER_NAME);
-			Map<String, JsonObject> staticDefaults = buildStructureChestStaticDefaults();
+			Map<String, JsonObject> staticDefaults = buildEntityStaticDefaults();
 
 			Map<String, JsonObject> normalizedFiles = JSONFormatManager.ensureManagedFolder(
 				tablesDirectory,
 				staticDefaults,
 				ignored -> new JsonObject(),
-				MadokuLootTableStructures::isSupportedLootTableFile,
-				MadokuLootTableStructures::copyDynamicEntry
+				LootTableEntitiesManager::isSupportedLootTableFile,
+				LootTableEntitiesManager::copyDynamicEntry
 			);
 
 			Map<String, ManagedLootTable> resolvedTables = new HashMap<>();
-			for (JsonObject tableRoot : normalizedFiles.values()) {
+			Map<String, ManagedLootTable> resolvedFileTables = new HashMap<>();
+			for (Map.Entry<String, JsonObject> entry : normalizedFiles.entrySet()) {
+				String fileKey = normalizeFileKey(entry.getKey());
+				JsonObject tableRoot = entry.getValue();
 				ManagedLootTable table = parseTable(tableRoot);
 				if (table == null) {
 					continue;
 				}
 				resolvedTables.put(table.tableId(), table);
+				if (!fileKey.isBlank()) {
+					resolvedFileTables.put(fileKey, table);
+				}
 			}
 
 			settings = loadedSettings;
 			tablesById = Map.copyOf(resolvedTables);
+			tablesByFileKey = Map.copyOf(resolvedFileTables);
 		} catch (IOException | RuntimeException exception) {
 			LOGGER.error("Failed to reload Madoku loot tables; preserving last valid cache.", exception);
 		} finally {
-			nextReloadAtMillis = now + RELOAD_INTERVAL_MILLIS;
+			nextReloadAtMillis = now + MadokuLootTableManager.resolveReloadIntervalMillis(server);
 		}
 	}
 
@@ -620,8 +630,8 @@ public final class MadokuLootTableStructures {
 		return new ManagedLootTable(tableId, minRolls, maxRolls, List.copyOf(groups));
 	}
 
-	private static Map<String, JsonObject> buildStructureChestStaticDefaults() {
-		return LootTableConfigStructures.buildDefaultStructureTableFiles();
+	private static Map<String, JsonObject> buildEntityStaticDefaults() {
+		return EntitiesConfigManager.buildDefaultEntityTableFiles();
 	}
 
 	private static List<ManagedLootGroup> parseGroups(JsonElement element) {
@@ -635,8 +645,8 @@ public final class MadokuLootTableStructures {
 				continue;
 			}
 
-			MadokuLootRarity rarity = MadokuLootRarity.fromString(
-				readString(groupRoot, LootTableConfigManager.FIELD_RARITY, MadokuLootRarity.COMMON.id())
+		LootTableRarity rarity = LootTableRarity.fromString(
+				readString(groupRoot, LootTableConfigManager.FIELD_RARITY, LootTableRarity.COMMON.id())
 			);
 			double weight = Math.max(0.0d, readDouble(groupRoot, LootTableConfigManager.FIELD_WEIGHT, 0.0d));
 			if (weight <= 0.0d) {
@@ -688,7 +698,7 @@ public final class MadokuLootTableStructures {
 		if (tag.isBlank()) {
 			return true;
 		}
-		return MadokuLootHooks.isGroupTagEnabled(tag);
+		return true;
 	}
 
 	private static String normalizeGroupTag(String value) {
@@ -721,7 +731,7 @@ public final class MadokuLootTableStructures {
 			int weight = Math.max(1, readInt(entryRoot, LootTableConfigManager.FIELD_WEIGHT, 1));
 			int minCount = Math.max(1, readInt(entryRoot, LootTableConfigManager.FIELD_MIN_COUNT, 1));
 			int maxCount = Math.max(minCount, readInt(entryRoot, LootTableConfigManager.FIELD_MAX_COUNT, minCount));
-			MadokuLootRarity itemRarity = MadokuLootRarity.fromString(
+			LootTableRarity itemRarity = LootTableRarity.fromString(
 				readString(entryRoot, LootTableConfigManager.FIELD_ITEM_RARITY, "")
 			);
 			entries.add(new ManagedLootEntry(item, weight, minCount, maxCount, itemRarity));
@@ -733,7 +743,9 @@ public final class MadokuLootTableStructures {
 		if (itemId == null || itemId.isBlank()) {
 			return null;
 		}
-		var identifier = net.minecraft.resources.Identifier.tryParse(itemId.trim().toLowerCase(Locale.ROOT));
+		var identifier = net.minecraft.resources.Identifier.tryParse(
+			MadokuJSONManager.normalizeRegistryIdentifierForLookup(itemId)
+		);
 		if (identifier == null || !BuiltInRegistries.ITEM.containsKey(identifier)) {
 			return null;
 		}
@@ -756,7 +768,22 @@ public final class MadokuLootTableStructures {
 		if (tableId == null || tableId.isBlank()) {
 			return "";
 		}
-		return tableId.trim().toLowerCase(Locale.ROOT);
+		return MadokuJSONManager.normalizeRegistryIdentifierForLookup(tableId);
+	}
+
+	private static String normalizeFileKey(String value) {
+		if (value == null || value.isBlank()) {
+			return "";
+		}
+		String normalized = value.trim().toLowerCase(Locale.ROOT).replace('\\', '/');
+		int slashIndex = normalized.lastIndexOf('/');
+		if (slashIndex >= 0 && slashIndex < normalized.length() - 1) {
+			normalized = normalized.substring(slashIndex + 1);
+		}
+		if (normalized.endsWith(".json")) {
+			normalized = normalized.substring(0, normalized.length() - ".json".length());
+		}
+		return normalized;
 	}
 
 	private static ManagedLootTable resolveManagedTableByLootId(String rawLootTableId) {
@@ -764,66 +791,43 @@ public final class MadokuLootTableStructures {
 		if (normalized.isBlank()) {
 			return null;
 		}
-		String canonicalStructureId = resolveStructureChestCanonicalId(normalized);
+		String canonicalStructureId = resolveEntityCanonicalId(normalized);
 		if (!canonicalStructureId.isBlank()) {
 			return tablesById.get(canonicalStructureId);
 		}
 		return tablesById.get(normalized);
 	}
 
-	private static String resolveStructureChestCanonicalId(String rawLootTableId) {
+	private static ManagedLootTable resolveManagedTableByConfigReference(String rawReference) {
+		if (rawReference == null || rawReference.isBlank()) {
+			return null;
+		}
+		String fileKey = normalizeFileKey(rawReference);
+		if (!fileKey.isBlank()) {
+			ManagedLootTable fromFileKey = tablesByFileKey.get(fileKey);
+			if (fromFileKey != null) {
+				return fromFileKey;
+			}
+		}
+		return resolveManagedTableByLootId(rawReference);
+	}
+
+	private static String resolveEntityCanonicalId(String rawLootTableId) {
 		var identifier = net.minecraft.resources.Identifier.tryParse(normalizeTableId(rawLootTableId));
 		if (identifier == null) {
 			return "";
 		}
-		if (!STRUCTURE_CHEST_NAMESPACE.equals(identifier.getNamespace())) {
+		if (!ENTITY_LOOT_NAMESPACE.equals(identifier.getNamespace())) {
 			return "";
 		}
-
 		String path = identifier.getPath();
-		if (path == null || !path.startsWith("chests/")) {
+		if (path == null || path.isBlank()) {
 			return "";
 		}
-		String chestKey = path.substring("chests/".length());
-		if (chestKey.isBlank()) {
-			return "";
+		if (path.startsWith("entities/")) {
+			return ENTITY_LOOT_PREFIX + path.substring("entities/".length());
 		}
-		if (chestKey.startsWith("ancient_city")) {
-			return STRUCTURE_CHEST_PREFIX + "ancient_city";
-		}
-		if (chestKey.startsWith("bastion_")) {
-			return STRUCTURE_CHEST_PREFIX + "bastion_remnant";
-		}
-		if (chestKey.startsWith("shipwreck_")) {
-			return STRUCTURE_CHEST_PREFIX + "shipwreck";
-		}
-		if (chestKey.startsWith("stronghold_")) {
-			return STRUCTURE_CHEST_PREFIX + "stronghold";
-		}
-		if (chestKey.startsWith("underwater_ruin_")) {
-			return STRUCTURE_CHEST_PREFIX + "underwater_ruin";
-		}
-		if (chestKey.startsWith("trial_chambers/") || chestKey.startsWith("trial_chambers_")) {
-			return STRUCTURE_CHEST_PREFIX + "trial_chambers";
-		}
-		if (chestKey.startsWith("village/") || chestKey.startsWith("village_")) {
-			return STRUCTURE_CHEST_PREFIX + "village";
-		}
-
-		return switch (chestKey) {
-			case "abandoned_mineshaft" -> STRUCTURE_CHEST_PREFIX + "abandoned_mineshaft";
-			case "buried_treasure" -> STRUCTURE_CHEST_PREFIX + "buried_treasure";
-			case "desert_pyramid" -> STRUCTURE_CHEST_PREFIX + "desert_pyramid";
-			case "end_city_treasure" -> STRUCTURE_CHEST_PREFIX + "end_city";
-			case "igloo_chest" -> STRUCTURE_CHEST_PREFIX + "igloo";
-			case "jungle_temple" -> STRUCTURE_CHEST_PREFIX + "jungle_temple";
-			case "nether_bridge" -> STRUCTURE_CHEST_PREFIX + "nether_fortress";
-			case "ruined_portal" -> STRUCTURE_CHEST_PREFIX + "ruined_portal";
-			case "simple_dungeon" -> STRUCTURE_CHEST_PREFIX + "dungeon";
-			case "spawn_bonus_chest" -> STRUCTURE_CHEST_PREFIX + "starter_chest";
-			case "woodland_mansion" -> STRUCTURE_CHEST_PREFIX + "woodland_mansion";
-			default -> "";
-		};
+		return "";
 	}
 
 	private static JsonObject readJsonObject(JsonObject root, String key) {
@@ -885,57 +889,14 @@ public final class MadokuLootTableStructures {
 	}
 
 	private record ManagedLootGroup(
-		MadokuLootRarity rarity,
+		LootTableRarity rarity,
 		double weight,
 		List<ManagedLootEntry> entries,
 		List<String> tags
 	) {
 	}
 
-	private record ManagedLootEntry(Item item, int weight, int minCount, int maxCount, MadokuLootRarity itemRarity) {
-	}
-
-	private record LuckCurve(List<Double> points, List<Double> values) {
-		private double sample(double x) {
-			if (points == null || values == null || points.isEmpty() || values.isEmpty()) {
-				return 1.0d;
-			}
-			if (points.size() != values.size()) {
-				return values.getFirst();
-			}
-			if (points.size() == 1) {
-				return values.getFirst();
-			}
-
-			double clampedX = x;
-			double minPoint = points.getFirst();
-			double maxPoint = points.getLast();
-			if (clampedX <= minPoint) {
-				return values.getFirst();
-			}
-			if (clampedX >= maxPoint) {
-				return values.getLast();
-			}
-
-			for (int index = 1; index < points.size(); index++) {
-				double right = points.get(index);
-				double left = points.get(index - 1);
-				if (clampedX > right) {
-					continue;
-				}
-
-				double leftValue = values.get(index - 1);
-				double rightValue = values.get(index);
-				double range = right - left;
-				if (range <= 0.0d) {
-					return rightValue;
-				}
-				double t = (clampedX - left) / range;
-				return leftValue + ((rightValue - leftValue) * t);
-			}
-
-			return values.getLast();
-		}
+	private record ManagedLootEntry(Item item, int weight, int minCount, int maxCount, LootTableRarity itemRarity) {
 	}
 
 	private static final class Settings {
@@ -943,49 +904,31 @@ public final class MadokuLootTableStructures {
 		private final boolean useMadokuLuck;
 		private final boolean overrideStructureLootTables;
 		private final boolean overrideEntityLootTables;
-		private final LuckCurve rollCurve;
-		private final EnumMap<MadokuLootRarity, LuckCurve> rarityCurves;
 
 		private Settings(
 			boolean enabled,
 			boolean useMadokuLuck,
 			boolean overrideStructureLootTables,
-			boolean overrideEntityLootTables,
-			LuckCurve rollCurve,
-			EnumMap<MadokuLootRarity, LuckCurve> rarityCurves
+			boolean overrideEntityLootTables
 		) {
 			this.enabled = enabled;
 			this.useMadokuLuck = useMadokuLuck;
 			this.overrideStructureLootTables = overrideStructureLootTables;
 			this.overrideEntityLootTables = overrideEntityLootTables;
-			this.rollCurve = rollCurve;
-			this.rarityCurves = rarityCurves;
 		}
 
 		private static Settings defaults() {
-			EnumMap<MadokuLootRarity, LuckCurve> curves = new EnumMap<>(MadokuLootRarity.class);
 			JsonObject defaults = LootTableConfigManager.buildSettingsDefaults();
-			for (MadokuLootRarity rarity : MadokuLootRarity.values()) {
-				curves.put(rarity, defaultCurve(rarity));
-			}
-			LuckCurve rollCurve = defaultRollCurve();
 			return new Settings(
 				readBoolean(defaults, LootTableConfigManager.FIELD_ENABLED, true),
 				readBoolean(defaults, LootTableConfigManager.FIELD_USE_MADOKU_LUCK, true),
 				readBoolean(defaults, LootTableConfigManager.FIELD_OVERRIDE_STRUCTURE_LOOT_TABLES, true),
-				readBoolean(defaults, LootTableConfigManager.FIELD_OVERRIDE_ENTITY_LOOT_TABLES, true),
-				rollCurve,
-				curves
+				readBoolean(defaults, LootTableConfigManager.FIELD_OVERRIDE_ENTITY_LOOT_TABLES, true)
 			);
 		}
 
 		private static Settings fromJson(JsonObject source) {
 			Settings defaults = defaults();
-			EnumMap<MadokuLootRarity, LuckCurve> curves = new EnumMap<>(MadokuLootRarity.class);
-			for (MadokuLootRarity rarity : MadokuLootRarity.values()) {
-				curves.put(rarity, defaults.rarityCurves.get(rarity));
-			}
-			LuckCurve rollCurve = defaults.rollCurve;
 
 			return new Settings(
 				readBoolean(source, LootTableConfigManager.FIELD_ENABLED, defaults.enabled),
@@ -999,48 +942,21 @@ public final class MadokuLootTableStructures {
 					source,
 					LootTableConfigManager.FIELD_OVERRIDE_ENTITY_LOOT_TABLES,
 					defaults.overrideEntityLootTables
-				),
-				rollCurve,
-				curves
+				)
 			);
 		}
 
 		private JsonObject toConfigJson() {
-			JsonObject root = new JsonObject();
-			root.addProperty(LootTableConfigManager.FIELD_ENABLED, enabled);
-			root.addProperty(LootTableConfigManager.FIELD_USE_MADOKU_LUCK, useMadokuLuck);
-			root.addProperty(LootTableConfigManager.FIELD_OVERRIDE_STRUCTURE_LOOT_TABLES, overrideStructureLootTables);
-			root.addProperty(LootTableConfigManager.FIELD_OVERRIDE_ENTITY_LOOT_TABLES, overrideEntityLootTables);
-			return root;
+			return madoku.craft.api.json.JSONFormatManager.object()
+				.put(LootTableConfigManager.FIELD_ENABLED, enabled)
+				.put(LootTableConfigManager.FIELD_USE_MADOKU_LUCK, useMadokuLuck)
+				.put(LootTableConfigManager.FIELD_OVERRIDE_STRUCTURE_LOOT_TABLES, overrideStructureLootTables)
+				.put(LootTableConfigManager.FIELD_OVERRIDE_ENTITY_LOOT_TABLES, overrideEntityLootTables)
+				.build();
 		}
 
-		private static LuckCurve defaultRollCurve() {
-			return new LuckCurve(
-				List.of(0.0d, 25.0d, 50.0d, 75.0d, 100.0d),
-				List.of(1.0d, 1.25d, 1.5d, 1.75d, 2.0d)
-			);
-		}
-
-		private static LuckCurve defaultCurve(MadokuLootRarity rarity) {
-			return switch (rarity) {
-				case COMMON -> new LuckCurve(
-					List.of(0.0d, 25.0d, 50.0d, 75.0d, 100.0d),
-					List.of(1.0d, 0.875d, 0.75d, 0.625d, 0.5d)
-				);
-				case RARE -> new LuckCurve(
-					List.of(0.0d, 25.0d, 50.0d, 75.0d, 100.0d),
-					List.of(1.0d, 0.9375d, 0.875d, 0.8125d, 0.75d)
-				);
-				case EPIC -> new LuckCurve(
-					List.of(0.0d, 25.0d, 50.0d, 75.0d, 100.0d),
-					List.of(1.0d, 1.25d, 1.5d, 1.75d, 2.0d)
-				);
-				case MYTHIC -> new LuckCurve(
-					List.of(0.0d, 25.0d, 50.0d, 75.0d, 100.0d),
-					List.of(1.0d, 1.5d, 2.0d, 3.0d, 4.0d)
-				);
-			};
-		}
 	}
 }
+
+
 

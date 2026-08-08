@@ -137,6 +137,26 @@ public final class MadokuJSONManager {
 		return cachedModVersion;
 	}
 
+	/** Converts vanilla registry paths to the underscore form used by Minecraft lookups. */
+	public static String normalizeRegistryIdentifierForLookup(String value) {
+		String normalized = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+		if (normalized.isBlank()) return "";
+		int separator = normalized.indexOf(':');
+		if (separator < 0) return "minecraft:" + normalized.replace('-', '_');
+		String namespace = normalized.substring(0, separator);
+		String path = normalized.substring(separator + 1);
+		return namespace + ":" + ("minecraft".equals(namespace) ? path.replace('-', '_') : path);
+	}
+
+	/** Converts registry identifiers to the hyphen form used in Madoku JSON files. */
+	public static String normalizeRegistryIdentifierForJson(String value) {
+		String normalized = value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+		if (normalized.isBlank()) return "";
+		int separator = normalized.indexOf(':');
+		if (separator < 0) return "minecraft:" + normalized.replace('_', '-');
+		return normalized.substring(0, separator + 1) + normalized.substring(separator + 1).replace('_', '-');
+	}
+
 	static void cacheSettings(Path file, JsonObject settings) { if (file != null && settings != null) SETTINGS_CACHE.put(file, settings.deepCopy()); }
 
 	private static Path resolveWorldFile(MinecraftServer server, String folderName, String jsonName, boolean createDirectory) {
