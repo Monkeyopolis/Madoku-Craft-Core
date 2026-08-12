@@ -11,16 +11,24 @@ import net.minecraft.world.level.biome.Biome;
 
 /** Orchestrator and public entry point for the Madoku Season subsystem. */
 public final class MadokuSeasonManager {
+	private static final Season[] SEASONS = Season.values();
+	private static boolean initialized;
+	private static MinecraftServer currentServer;
 	private static String lastBroadcastSeason = "";
 	private static double lastBroadcastTemperatureOffset;
 	private static double lastBroadcastHumidityOffset;
 	private static String lastBroadcastWeatherCondition = "";
 	private static int lastBroadcastSeasonDay = -1;
 	private static int lastBroadcastSeasonLengthDays = -1;
+	private static long cachedAbsoluteDay = Long.MIN_VALUE;
+	private static int cachedSeasonLengthDays = -1;
+	private static SeasonState cachedState;
 
 	private MadokuSeasonManager() { }
 
 	public static void initialize() {
+		if (initialized) return;
+		initialized = true;
 		SeasonConfigManager.initialize();
 		SeasonBiomeClimateManager.initialize();
 		SeasonEnvironmentTransitionManager.initialize();
@@ -34,6 +42,7 @@ public final class MadokuSeasonManager {
 	}
 
 	public static void reset() {
+		currentServer = null;
 		SeasonEnvironmentTransitionManager.reset();
 		SeasonWeatherManager.reset();
 		SeasonBiomeClimateManager.reset();
@@ -43,6 +52,9 @@ public final class MadokuSeasonManager {
 		lastBroadcastWeatherCondition = "";
 		lastBroadcastSeasonDay = -1;
 		lastBroadcastSeasonLengthDays = -1;
+		cachedAbsoluteDay = Long.MIN_VALUE;
+		cachedSeasonLengthDays = -1;
+		cachedState = null;
 	}
 
 	public static boolean isEnabled() { return SeasonConfigManager.getSettings().enabled(); }
@@ -55,7 +67,17 @@ public final class MadokuSeasonManager {
 	public static int getCurrentSeasonWeek() { return getCurrentState().week(); }
 
 	public static SeasonBiomeClimateManager.Climate resolveBiomeClimate(ServerLevel level, BlockPos pos) {
-		SeasonBiomeClimateManager.Climate climate = SeasonBiomeClimateManager.resolve(level, pos);
+		return resolveBiomeClimate(level, pos, null);
+	}
+
+	public static SeasonBiomeClimateManager.Climate resolveBiomeClimate(
+		ServerLevel level,
+		BlockPos pos,
+		Biome biome
+	) {
+		SeasonBiomeClimateManager.Climate climate = biome == null
+			? SeasonBiomeClimateManager.resolve(level, pos)
+			: SeasonBiomeClimateManager.resolve(biome);
 		String season = getCurrentSeasonId(level);
 		SeasonBiomeClimateManager.Climate adjustedClimate = new SeasonBiomeClimateManager.Climate(
 			SeasonEnvironmentTransitionManager.adjustTemperature(climate.temperature(), season, MadokuTimeManager.getCurrentAbsoluteDayTime(level)),
@@ -68,13 +90,17 @@ public final class MadokuSeasonManager {
 	}
 
 	public static Biome.Precipitation resolveSeasonalPrecipitation(ServerLevel level, BlockPos pos) {
+		return resolveSeasonalPrecipitation(level, pos, null);
+	}
+
+	public static Biome.Precipitation resolveSeasonalPrecipitation(ServerLevel level, BlockPos pos, Biome biome) {
 		if (level == null || pos == null) return Biome.Precipitation.NONE;
 		if (!SeasonEnvironmentTransitionManager.isWeatherTransitionEnabled()) {
-			Biome biome = level.getBiome(pos).value();
-			return SeasonEnvironmentTransitionManager.resolvePrecipitation(biome, getCurrentSeasonId(level));
+			Biome resolvedBiome = biome == null ? level.getBiome(pos).value() : biome;
+			return SeasonEnvironmentTransitionManager.resolvePrecipitation(resolvedBiome, getCurrentSeasonId(level));
 		}
 		return SeasonEnvironmentTransitionManager.resolvePrecipitation(
-			SeasonBiomeClimateManager.resolve(level, pos),
+			biome == null ? SeasonBiomeClimateManager.resolve(level, pos) : SeasonBiomeClimateManager.resolve(biome),
 			getCurrentSeasonId(level),
 			SeasonEnvironmentTransitionManager.getTemperatureOffset(),
 			SeasonEnvironmentTransitionManager.getHumidityOffset(),
@@ -82,7 +108,7 @@ public final class MadokuSeasonManager {
 	}
 
 	public static boolean shouldSeasonFreezeAt(ServerLevel level, Biome biome, BlockPos pos) {
-		return SeasonEnvironmentTransitionManager.shouldFreezeAt(level, pos, resolveBiomeClimate(level, pos));
+		return SeasonEnvironmentTransitionManager.shouldFreezeAt(level, pos, resolveBiomeClimate(level, pos, biome));
 	}
 
 	public static boolean shouldSeasonMeltAt(ServerLevel level, BlockPos pos) {
@@ -90,10 +116,10 @@ public final class MadokuSeasonManager {
 	}
 
 	public static void onServerStarted(MinecraftServer server) {
-		if (server != null) {
-			SeasonBiomeClimateManager.onServerStarted(server);
-			SeasonWeatherManager.onServerStarted(server);
-		}
+		if (server == null || currentServer == server) return;
+		currentServer = server;
+		SeasonBiomeClimateManager.onServerStarted(server);
+		SeasonWeatherManager.onServerStarted(server);
 	}
 	public static void onServerTick(MinecraftServer server) {
 		if (server != null) currentState(server.overworld());
@@ -105,6 +131,7 @@ public final class MadokuSeasonManager {
 	}
 
 	public static void broadcastWorldSeasonNow(MinecraftServer server) {
+		broadcastWorldSeason(server, true);
 	}
 
 	public static void broadcastWorldSeasonIfChanged(MinecraftServer server) {
@@ -181,12 +208,17 @@ public final class MadokuSeasonManager {
 
 
 	private static SeasonState resolveState(ServerLevel level) {
-		long absoluteDay = Math.max(0L, MadokuTimeManager.getDay(MadokuTimeManager.getCurrentAbsoluteDayTime(level)));
 		int seasonLength = SeasonConfigManager.getSettings().seasonLengthDays();
+		long absoluteDay = Math.max(0L, MadokuTimeManager.getDay(MadokuTimeManager.getCurrentAbsoluteDayTime(level)));
+		if (cachedState != null && cachedAbsoluteDay == absoluteDay && cachedSeasonLengthDays == seasonLength) {
+			return cachedState;
+		}
 		long cycleDay = Math.floorMod(absoluteDay, seasonLength * 4L);
-		Season season = Season.values()[(int) (cycleDay / seasonLength)];
+		Season season = SEASONS[(int) (cycleDay / seasonLength)];
 		int day = (int) (cycleDay % seasonLength);
-		return new SeasonState(absoluteDay, cycleDay, season, day, day / SeasonConfigManager.DEFAULT_DAYS_PER_WEEK + 1, day % SeasonConfigManager.DEFAULT_DAYS_PER_WEEK + 1);
+		cachedAbsoluteDay = absoluteDay;
+		cachedSeasonLengthDays = seasonLength;
+		return cachedState = new SeasonState(absoluteDay, cycleDay, season, day, day / SeasonConfigManager.DEFAULT_DAYS_PER_WEEK + 1, day % SeasonConfigManager.DEFAULT_DAYS_PER_WEEK + 1);
 	}
 
 	private static SeasonState currentState(ServerLevel level) {
