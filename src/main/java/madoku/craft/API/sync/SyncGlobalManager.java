@@ -1,6 +1,7 @@
 package madoku.craft.api.sync;
 
 import madoku.craft.api.season.SeasonPayloadManager;
+import madoku.craft.api.season.PlayerClimatePayloadManager;
 import madoku.craft.api.time.TimePayloadManager;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
@@ -69,6 +70,7 @@ public final class SyncGlobalManager {
 
 	private static void registerPayloadTypes() {
 		registerClientbound(SeasonPayloadManager.TYPE, SeasonPayloadManager.CODEC);
+		registerClientbound(PlayerClimatePayloadManager.TYPE, PlayerClimatePayloadManager.CODEC);
 		registerClientbound(TimePayloadManager.TYPE, TimePayloadManager.CODEC);
 	}
 

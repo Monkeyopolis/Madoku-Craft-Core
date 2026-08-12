@@ -41,6 +41,7 @@ public class MadokuCraftAPI implements ModInitializer {
 			if (MadokuAPIManager.shouldRunWorldSync(server)) {
 				MadokuTimeManager.broadcastWorldTimeIfChanged(server);
 				MadokuSeasonManager.broadcastWorldSeasonIfChanged(server);
+				MadokuSeasonManager.syncPlayerClimateIfChanged(server);
 			}
 		});
 	}

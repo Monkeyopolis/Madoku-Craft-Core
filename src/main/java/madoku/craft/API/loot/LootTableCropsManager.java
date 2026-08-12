@@ -5,12 +5,16 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import madoku.craft.api.json.JSONFormatManager;
 import madoku.craft.api.json.MadokuJSONManager;
+import madoku.craft.api.data.MadokuChunkDataManager;
+import madoku.craft.api.helper.MadokuBlockDropContextManager;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
@@ -47,6 +51,8 @@ public final class LootTableCropsManager {
 	public static List<ItemStack> generateManagedLootForContext(LootContext lootContext) {
 		if (lootContext == null) return null;
 		ServerLevel level = lootContext.getLevel();
+		if (MadokuBlockDropContextManager.isActiveDropPlayerPlacedBlock()
+			|| MadokuChunkDataManager.isPlayerPlacedBlock(level, resolveBlockPos(lootContext))) return null;
 		reloadIfNeeded(level == null ? null : level.getServer());
 		if (!settings.enabled || !settings.overrideCropLootTables) return null;
 
@@ -112,6 +118,16 @@ public final class LootTableCropsManager {
 	}
 
 	private static String resolveTableId(String value) { return MadokuLootTableManager.normalizeSharedTableId(value); }
+
+	private static BlockPos resolveBlockPos(LootContext context) {
+		if (context == null) return null;
+		try {
+			Vec3 origin = context.getOptionalParameter(LootContextParams.ORIGIN);
+			return origin == null ? null : BlockPos.containing(origin);
+		} catch (RuntimeException ignored) {
+			return null;
+		}
+	}
 
 	private static String resolveQueriedLootTableId(LootContext context) {
 		for (String methodName : new String[] { "getQueriedLootTableId", "queriedLootTableId" }) {

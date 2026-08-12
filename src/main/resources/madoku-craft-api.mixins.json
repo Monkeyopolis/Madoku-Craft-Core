@@ -12,6 +12,9 @@
     "LevelSeasonalPrecipitationMixin",
     "ServerClockManagerMixin",
     "TimelineMixin",
+    "BlockItemPlacedBlockTrackingMixin",
+    "BlockPlayerDestroyDropContextMixin",
+    "ServerLevelRandomPositionTickMixin",
     "LootTableDynamicMixin",
     "RandomizableContainerLootMixin",
 		"ContainerEntityLootMixin"
