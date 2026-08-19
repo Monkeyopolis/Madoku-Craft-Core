@@ -92,9 +92,10 @@ public final class MadokuChunkManager {
 			if (event == null) return;
 			if (!isCurrentLifecycleEvent(event)) continue;
 			if (event.loaded()) {
-				if (isChunkAccessible(event.level(), event.chunkX(), event.chunkZ())) {
-					notifyChunkLoaded(event.level(), event.chunkX(), event.chunkZ());
+				if (!isChunkAccessible(event.level(), event.chunkX(), event.chunkZ())) {
+					continue;
 				}
+				notifyChunkLoaded(event.level(), event.chunkX(), event.chunkZ());
 			} else {
 				notifyChunkUnloaded(event.level(), event.chunkX(), event.chunkZ());
 			}

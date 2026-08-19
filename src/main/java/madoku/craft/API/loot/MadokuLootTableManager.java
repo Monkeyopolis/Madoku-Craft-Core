@@ -207,10 +207,17 @@ public final class MadokuLootTableManager {
 	}
 
 	private static Item resolveSharedItem(String itemId) {
-		if (itemId == null || itemId.isBlank() || "empty".equalsIgnoreCase(itemId.trim())) return Items.AIR;
+		if (itemId == null || itemId.isBlank()) {
+			return null;
+		}
+		if ("empty".equalsIgnoreCase(itemId.trim())) {
+			return Items.AIR;
+		}
 		Identifier identifier = Identifier.tryParse(MadokuJSONManager.normalizeRegistryIdentifierForLookup(itemId));
-		return identifier == null || !BuiltInRegistries.ITEM.containsKey(identifier)
-			? null : BuiltInRegistries.ITEM.getValue(identifier);
+		if (identifier == null || !BuiltInRegistries.ITEM.containsKey(identifier)) {
+			return null;
+		}
+		return BuiltInRegistries.ITEM.getValue(identifier);
 	}
 
 	private static JsonObject readObject(JsonObject root, String key) {

@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,10 +30,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 /** Loads and rolls the shared weighted entity loot-table format. */
 public final class LootTableEntitiesManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(LootTableEntitiesManager.class);
+	private static final String LOOT_CONFIG_ROOT_FOLDER_NAME = MadokuLootTableManager.CONFIG_ROOT_FOLDER_NAME;
+	private static final String LOOT_CONFIG_SETTINGS_FILE_NAME = "madoku-loot-tables";
 	private static final String LOOT_CONFIG_TABLES_FOLDER_NAME = "madoku-entities";
 	private static final String ENTITY_LOOT_NAMESPACE = "minecraft";
 	private static final String ENTITY_LOOT_PREFIX = "minecraft:entities/";
@@ -54,27 +58,43 @@ public final class LootTableEntitiesManager {
 
 	public static boolean applyManagedLootTable(Container container, ResourceKey<LootTable> lootTableKey,
 		long lootTableSeed, ServerLevel level, ServerPlayer player) {
-		if (container == null || lootTableKey == null || level == null) return false;
+		if (container == null || lootTableKey == null || level == null) {
+			return false;
+		}
 		reloadIfNeeded(level.getServer());
-		if (!settings.enabled || !settings.overrideEntityLootTables) return false;
-		MadokuLootTableManager.SharedLootTable table = resolveManagedTableByLootId(lootTableKey.identifier().toString());
-		if (table == null) return false;
-		RandomSource random = lootTableSeed == 0L ? level.getRandom() : RandomSource.create(lootTableSeed);
+		Settings activeSettings = settings;
+		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
+			return false;
+		}
+		MadokuLootTableManager.SharedLootTable table = resolveManagedTableByLootId(
+			lootTableKey.identifier().toString()
+		);
+		if (table == null) {
+			return false;
+		}
+		RandomSource random = createRandom(level, lootTableSeed);
 		fillContainer(container, MadokuLootTableManager.rollSharedTable(table, random), random);
 		return true;
 	}
 
 	public static List<ItemStack> generateManagedLootForContext(LootContext lootContext) {
-		if (lootContext == null) return null;
+		if (lootContext == null) {
+			return null;
+		}
 		ServerLevel level = lootContext.getLevel();
 		reloadIfNeeded(level == null ? null : level.getServer());
-		if (!settings.enabled || !settings.overrideEntityLootTables) return null;
+		Settings activeSettings = settings;
+		if (!activeSettings.enabled || !activeSettings.overrideEntityLootTables) {
+			return null;
+		}
 		String tableId = resolveQueriedLootTableId(lootContext);
 		if (tableId.isBlank()) {
 			tableId = resolveEntityLootTableId(lootContext);
 		}
 		MadokuLootTableManager.SharedLootTable table = resolveManagedTableByLootId(tableId);
-		if (table == null) return null;
+		if (table == null) {
+			return null;
+		}
 		RandomSource random = lootContext.getRandom();
 		return MadokuLootTableManager.rollSharedTable(table, random == null
 			? (level == null ? RandomSource.create() : level.getRandom()) : random);
@@ -115,25 +135,37 @@ public final class LootTableEntitiesManager {
 		container.setChanged();
 	}
 
+	private static RandomSource createRandom(ServerLevel level, long lootTableSeed) {
+		if (lootTableSeed != 0L) {
+			return RandomSource.create(lootTableSeed);
+		}
+		return level == null ? RandomSource.create() : level.getRandom();
+	}
+
 	private static void reloadIfNeeded(net.minecraft.server.MinecraftServer server) {
-		if (System.currentTimeMillis() >= nextReloadAtMillis) reloadNow(server);
+		long now = System.currentTimeMillis();
+		if (now >= nextReloadAtMillis) {
+			reloadNow(server);
+		}
 	}
 
 	private static synchronized void reloadNow(net.minecraft.server.MinecraftServer server) {
 		long now = System.currentTimeMillis();
 		try {
-			Path root = MadokuJSONManager.getOrCreateGlobalSystemDirectory(MadokuLootTableManager.CONFIG_ROOT_FOLDER_NAME);
-			Path settingsFile = root.resolve("madoku-loot-tables.json");
+			Path root = MadokuJSONManager.getOrCreateGlobalSystemDirectory(LOOT_CONFIG_ROOT_FOLDER_NAME);
+			Path settingsFile = resolveJsonFile(root, LOOT_CONFIG_SETTINGS_FILE_NAME);
 			JsonObject defaults = LootTableConfigManager.buildSettingsDefaults();
-			Settings loadedSettings = Settings.fromJson(JSONFormatManager.ensureManagedFile(settingsFile, defaults));
+			JsonObject normalizedSettings = JSONFormatManager.ensureManagedFile(settingsFile, defaults);
+			Settings loadedSettings = Settings.fromJson(normalizedSettings);
 			JSONFormatManager.writeManagedFile(settingsFile, loadedSettings.toConfigJson(), defaults);
 
+			Path tablesDirectory = root.resolve(LOOT_CONFIG_TABLES_FOLDER_NAME);
 			Map<String, JsonObject> files = JSONFormatManager.ensureManagedFolder(
-				root.resolve(LOOT_CONFIG_TABLES_FOLDER_NAME),
+				tablesDirectory,
 				EntitiesConfigManager.buildDefaultEntityTableFiles(),
 				ignored -> new JsonObject(),
 				LootTableEntitiesManager::isSupportedLootTableFile,
-				(key, value) -> value == null || value.isJsonNull() ? null : value.deepCopy()
+				LootTableEntitiesManager::copyDynamicEntry
 			);
 			Map<String, MadokuLootTableManager.SharedLootTable> byId = new HashMap<>();
 			Map<String, MadokuLootTableManager.SharedLootTable> byFileKey = new HashMap<>();
@@ -155,8 +187,31 @@ public final class LootTableEntitiesManager {
 	}
 
 	private static boolean isSupportedLootTableFile(String fileKey, JsonObject source) {
-		return source != null && (!readBoolean(source, LootTableConfigManager.FIELD_ENABLED, true)
-			|| !normalizeTableId(readString(source, LootTableConfigManager.FIELD_TABLE_ID, "")).isBlank());
+		if (source == null || source.isEmpty()) {
+			return false;
+		}
+		if (!readBoolean(source, LootTableConfigManager.FIELD_ENABLED, true)) {
+			return true;
+		}
+		return !normalizeTableId(readString(source, LootTableConfigManager.FIELD_TABLE_ID, "")).isBlank();
+	}
+
+	private static JsonElement copyDynamicEntry(String key, JsonElement sourceValue) {
+		if (sourceValue == null || sourceValue.isJsonNull()) {
+			return null;
+		}
+		return sourceValue.deepCopy();
+	}
+
+	private static Path resolveJsonFile(Path directory, String fileName) {
+		String normalized = fileName == null ? "" : fileName.trim();
+		if (normalized.isBlank()) {
+			throw new IllegalArgumentException("Loot config file name must not be blank.");
+		}
+		if (!normalized.endsWith(".json")) {
+			normalized += ".json";
+		}
+		return directory.resolve(normalized);
 	}
 
 	private static String normalizeTableId(String value) {
@@ -164,14 +219,18 @@ public final class LootTableEntitiesManager {
 	}
 
 	private static String resolveEntityLootTableId(LootContext lootContext) {
-		if (lootContext == null) return "";
+		if (lootContext == null) {
+			return "";
+		}
 		try {
 			Entity entity = lootContext.getOptionalParameter(LootContextParams.THIS_ENTITY);
-			if (entity == null) return "";
+			if (entity == null) {
+				return "";
+			}
 			Identifier entityId = BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType());
-			return entityId == null ? "" : normalizeTableId(
-				entityId.getNamespace() + ":entities/" + entityId.getPath()
-			);
+			return entityId == null
+				? ""
+				: normalizeTableId(entityId.getNamespace() + ":entities/" + entityId.getPath());
 		} catch (RuntimeException ignored) {
 			return "";
 		}
@@ -205,23 +264,67 @@ public final class LootTableEntitiesManager {
 	}
 
 	private static String resolveQueriedLootTableId(LootContext context) {
-		for (String methodName : new String[] { "getQueriedLootTableId", "queriedLootTableId" }) {
-			try {
-				Method method = context.getClass().getMethod(methodName);
-				String id = normalizeIdentifierObject(method.invoke(context));
-				if (!id.isBlank()) return id;
-			} catch (ReflectiveOperationException | RuntimeException ignored) { }
+		Object value = invokeNoArgMethodIfPresent(context, "getQueriedLootTableId");
+		String fromMethod = normalizeIdentifierObject(value);
+		if (!fromMethod.isBlank()) {
+			return fromMethod;
 		}
-		return "";
+
+		value = invokeNoArgMethodIfPresent(context, "queriedLootTableId");
+		fromMethod = normalizeIdentifierObject(value);
+		if (!fromMethod.isBlank()) {
+			return fromMethod;
+		}
+
+		return normalizeIdentifierObject(readFieldIfPresent(context, "queriedLootTableId"));
 	}
 
 	private static String normalizeIdentifierObject(Object value) {
-		if (value == null) return "";
-		if (value instanceof java.util.Optional<?> optional) return optional.isPresent() ? normalizeIdentifierObject(optional.get()) : "";
-		if (value instanceof ResourceKey<?> key) return normalizeTableId(key.identifier().toString());
-		String candidate = value.toString().trim();
-		if (candidate.startsWith("Optional[") && candidate.endsWith("]")) candidate = candidate.substring(9, candidate.length() - 1);
-		return normalizeTableId(candidate.toLowerCase(Locale.ROOT));
+		if (value == null) {
+			return "";
+		}
+		if (value instanceof Optional<?> optional) {
+			return optional.isPresent() ? normalizeIdentifierObject(optional.get()) : "";
+		}
+		if (value instanceof ResourceKey<?> key) {
+			return normalizeTableId(key.identifier().toString());
+		}
+		String candidate = value.toString();
+		if (candidate == null || candidate.isBlank()) {
+			return "";
+		}
+		String trimmed = candidate.trim();
+		if (trimmed.startsWith("Optional[") && trimmed.endsWith("]")) {
+			trimmed = trimmed.substring("Optional[".length(), trimmed.length() - 1);
+		}
+		Identifier identifier = Identifier.tryParse(trimmed.toLowerCase(Locale.ROOT));
+		return identifier == null ? "" : normalizeTableId(identifier.toString());
+	}
+
+	private static Object invokeNoArgMethodIfPresent(Object target, String methodName) {
+		if (target == null || methodName == null || methodName.isBlank()) {
+			return null;
+		}
+		try {
+			Method method = target.getClass().getMethod(methodName);
+			method.setAccessible(true);
+			return method.invoke(target);
+		} catch (ReflectiveOperationException | RuntimeException ignored) {
+			return null;
+		}
+	}
+
+	private static Object readFieldIfPresent(Object target, String fieldName) {
+		if (target == null || fieldName == null || fieldName.isBlank()) {
+			return null;
+		}
+		try {
+			Field field = target.getClass().getDeclaredField(fieldName);
+			field.setAccessible(true);
+			return field.get(target);
+		} catch (ReflectiveOperationException | RuntimeException ignored) {
+			return null;
+		}
 	}
 
 	private static boolean readBoolean(JsonObject root, String key, boolean fallback) {
