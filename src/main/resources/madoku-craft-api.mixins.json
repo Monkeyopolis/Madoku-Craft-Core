@@ -17,13 +17,20 @@
     "ServerLevelRandomPositionTickMixin",
     "LootTableDynamicMixin",
     "RandomizableContainerLootMixin",
-		"ContainerEntityLootMixin"
+		"ContainerEntityLootMixin",
+		"CraftingMenuRarityMixin",
+		"InventoryMenuRarityMixin",
+		"ItemInputRarityMixin",
+		"LootTableRarityMixin",
+		"ResultSlotRarityMixin",
+		"SmithingTransformRecipeRarityMixin"
 	],
 	"client": [
 		"client.BiomeSeasonalPrecipitationMixin",
 		"client.BiomeTemperatureColorMixin",
 		"client.LevelSeasonalWeatherClientMixin",
-		"client.SpruceBirchLeafTintMixin"
+		"client.SpruceBirchLeafTintMixin",
+		"client.GuiGraphicsRarityOverlayMixin"
 	],
   "injectors": {
     "defaultRequire": 1

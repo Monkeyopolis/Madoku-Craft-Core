@@ -10,6 +10,7 @@ import madoku.craft.api.sync.MadokuSyncManager;
 import madoku.craft.api.recipes.MadokuRecipesManager;
 import madoku.craft.api.loot.MadokuLootTableManager;
 import madoku.craft.api.helper.MadokuHelperManager;
+import madoku.craft.api.rarity.MadokuRarityManager;
 
 import java.nio.file.Path;
 
@@ -30,6 +31,7 @@ public final class MadokuAPIManager {
 		MadokuSchedulerManager.initialize();
 		MadokuSyncManager.initialize();
 		MadokuRecipesManager.initialize();
+		MadokuRarityManager.initialize();
 		MadokuLootTableManager.initialize();
 	}
 
@@ -47,6 +49,7 @@ public final class MadokuAPIManager {
 		MadokuSchedulerManager.reset();
 		MadokuSyncManager.reset();
 		MadokuRecipesManager.reset();
+		MadokuRarityManager.reset();
 		MadokuLootTableManager.reset();
 	}
 
