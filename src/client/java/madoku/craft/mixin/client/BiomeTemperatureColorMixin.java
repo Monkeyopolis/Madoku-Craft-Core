@@ -1,6 +1,6 @@
 package madoku.craft.mixin.client;
 
-import madoku.craft.api.season.EnvironmentTransitionConfigManager;
+import madoku.craft.core.season.EnvironmentTransitionConfigManager;
 import madoku.craft.color.ClientColorContext;
 import madoku.craft.season.ClientSeasonalPrecipitationState;
 import net.minecraft.client.Minecraft;

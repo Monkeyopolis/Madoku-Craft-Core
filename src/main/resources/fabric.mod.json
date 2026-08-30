@@ -1,29 +1,29 @@
 {
 	"schemaVersion": 1,
-	"id": "madoku-craft-api",
+	"id": "madoku-craft-core",
 	"version": "${version}",
-	"name": "Madoku Craft API",
-	"description": "A Shared Library MOD used by Madoku Craft MODs.",
+	"name": "Madoku Craft Core",
+	"description": "A foundational piece required by Madoku Craft mods.",
 	"authors": [
 		"Monkeyopolis"
 	],
 	"contact": {
-		"sources": "https://github.com/Monkeyopolis/Madoku-Craft-API"
+		"sources": "https://github.com/Monkeyopolis/Madoku-Craft-Core"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/madoku-craft-api/icon.png",
+	"icon": "assets/madoku-craft-core/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"madoku.craft.api.MadokuCraftAPI"
+			"madoku.craft.core.MadokuCraftCore"
 		],
 		"client": [
-			"madoku.craft.MadokuCraftAPIClient"
+			"madoku.craft.MadokuCraftCoreClient"
 		]
 	},
 	"mixins": [
-		"madoku-craft-api.mixins.json",
-		"madoku-craft-api.sodium.mixins.json"
+		"madoku-craft-core.mixins.json",
+		"madoku-craft-core.sodium.mixins.json"
 	],
 	"depends": {
 		"fabricloader": "${loader_version}",

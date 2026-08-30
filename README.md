@@ -1,25 +1,26 @@
 ## Overview:
 
-Madoku Craft: API is a Fabric library mod.
+Madoku Craft: Core modifies and adds gameplay systems to Minecraft.
+It's also a foundational piece required by Madoku Craft mods.
 
 ## Features:
 
-Dedicated JSON file system.
-- This system manages how JSON files are created, updated, and deleted.
-- It also manages a JSON file's format.
+Madoku Season:
+- This system adds seasonal changes to a world.
+- It changes foliage color, temperature, and humidity based on the season.
 
-Dedicated Data system.
-- This system manages how a world's save data is created, updated, and deleted.
-- It creates world chunk and player data.
+Madoku Time:
+- This system modifies the in-game world time.
+- The day-cycle length is configurable and changes based on the season.
 
-Dedicated Scheduler system.
-- This system manages how and when tick related events are executed.
-- It also have an adapative interval mechanic to manage server performance.
+Madoku Loot Tables:
+- This system modifies loot tables for structures, mob equipment, and mob loot.
+- The system is configurable.
 
-- Dedicated Time system.
-This system creates a configurable Time system.
-It allows users to customize the Day and Night cycle.
+Madoku Enchantment:
+- This system modifies the enchanting table and the enchantments themselves.
+- Enchanting can be applied to books and glass bottles.
 
-- Dedicated Season system.
-This system creates a configurable Season system.
-It adds seasonal changes to a world.
+Madoku Recipes:
+- This system modifies in-game recipes.
+- This allows customizable crafting recipes, smelting recipes, etc.

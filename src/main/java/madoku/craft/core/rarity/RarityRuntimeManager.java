@@ -1,0 +1,125 @@
+package madoku.craft.core.rarity;
+
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextColor;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.item.ItemStack;
+import madoku.craft.core.rarity.RarityTierManager.Tier;
+
+public final class RarityRuntimeManager {
+	private static volatile boolean initialized;
+
+	private RarityRuntimeManager() {
+	}
+
+	public static void initialize() {
+		initialized = true;
+	}
+
+	public static void reset() {
+		initialized = false;
+	}
+
+	public static void applyGeneratedRarity(ItemStack stack, RandomSource randomSource, ServerPlayer luckPlayer) {
+		if (!isEnabled() || stack == null || stack.isEmpty() || detectAppliedRarity(stack) != null) {
+			return;
+		}
+
+		RandomSource random = randomSource == null ? RandomSource.create() : randomSource;
+		rollAndApplySingle(random, stack, null, false);
+	}
+
+	public static void applyConfiguredRarity(ItemStack stack, Tier rarity) {
+		if (!isEnabled() || stack == null || stack.isEmpty() || rarity == null
+			|| detectAppliedRarity(stack) != null) {
+			return;
+		}
+		applyRarity(stack, rarity);
+	}
+
+	public static Tier detectAppliedRarity(ItemStack stack) {
+		if (stack == null || stack.isEmpty()) {
+			return null;
+		}
+		Component customName = stack.get(DataComponents.CUSTOM_NAME);
+		if (customName == null || customName.getStyle().getColor() == null) {
+			return null;
+		}
+
+		int rgb = customName.getStyle().getColor().getValue();
+		for (Tier tier : Tier.values()) {
+			Integer tierColor = TextColor.fromLegacyFormat(tier.color()).getValue();
+			if (tierColor != null && tierColor == rgb) {
+				return tier;
+			}
+		}
+		return null;
+	}
+
+	private static boolean isEnabled() {
+		return initialized && MadokuRarityManager.isEnabled();
+	}
+
+	private static void rollAndApplySingle(RandomSource random, ItemStack stack, ServerPlayer luckPlayer, boolean useMadokuLuck) {
+		applyRarity(stack, rollRandomRarity(random, luckPlayer, useMadokuLuck));
+	}
+
+	private static Tier rollRandomRarity(RandomSource random, ServerPlayer luckPlayer, boolean useMadokuLuck) {
+		RandomSource resolvedRandom = random == null ? RandomSource.create() : random;
+		double luckStat = 0.0D;
+		boolean luckActive = luckPlayer != null;
+		double totalWeight = 0.0D;
+		for (Tier tier : Tier.values()) {
+			totalWeight += MadokuRarityManager.resolveWeight(tier, luckStat, luckActive && useMadokuLuck);
+		}
+		if (totalWeight <= 0.0D) {
+			return Tier.COMMON;
+		}
+
+		double roll = resolvedRandom.nextDouble() * totalWeight;
+		Tier fallback = Tier.COMMON;
+		for (Tier tier : Tier.values()) {
+			double weight = MadokuRarityManager.resolveWeight(tier, luckStat, luckActive && useMadokuLuck);
+			if (weight <= 0.0D) {
+				continue;
+			}
+			fallback = tier;
+			if (roll < weight) {
+				return tier;
+			}
+			roll -= weight;
+		}
+		return fallback;
+	}
+
+	public static void applyRarity(ItemStack stack, Tier rarity) {
+		if (stack == null || stack.isEmpty() || rarity == null) {
+			return;
+		}
+		MutableComponent coloredName = stack.getItem().getName(stack).copy()
+			.withStyle(style -> style.withColor(rarity.color()).withItalic(false));
+		stack.set(DataComponents.CUSTOM_NAME, coloredName);
+	}
+
+	public static void preserveRarityOnRename(ItemStack source, ItemStack target) {
+		if (source == null || source.isEmpty() || target == null || target.isEmpty()) {
+			return;
+		}
+
+		Tier rarity = detectAppliedRarity(source);
+		if (rarity == null) {
+			return;
+		}
+
+		Component targetName = target.get(DataComponents.CUSTOM_NAME);
+		if (targetName == null) {
+			targetName = target.getItem().getName(target);
+		}
+		target.set(DataComponents.CUSTOM_NAME, targetName.copy()
+			.withStyle(style -> style.withColor(rarity.color()).withItalic(false)));
+	}
+
+}

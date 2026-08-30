@@ -28,7 +28,7 @@ loom {
 	splitEnvironmentSourceSets()
 
 	mods {
-		"madoku-craft-api" {
+		"madoku-craft-core" {
 			sourceSet sourceSets.main
 			sourceSet sourceSets.client
 		}

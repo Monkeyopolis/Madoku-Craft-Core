@@ -1,7 +1,7 @@
 package madoku.craft.mixin.client;
 
-import madoku.craft.api.rarity.MadokuRarityManager;
-import madoku.craft.api.rarity.RarityTierManager.Tier;
+import madoku.craft.core.rarity.MadokuRarityManager;
+import madoku.craft.core.rarity.RarityTierManager.Tier;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
@@ -39,8 +39,9 @@ public abstract class GuiGraphicsRarityOverlayMixin {
 		GuiGraphicsExtractor context = (GuiGraphicsExtractor) (Object) this;
 		if (stack.isBarVisible()) drawTopDurabilityBar(context, stack, x, y);
 		if (!MadokuRarityManager.isEnabled() || stackCountText != null || stack.getCount() > 1) return;
+		if (!MadokuRarityManager.isRarityItem(stack)) return;
 		Tier rarity = MadokuRarityManager.detectAppliedRarity(stack);
-		if (rarity == null) rarity = Tier.COMMON;
+		if (rarity == null) return;
 		String indicator = rarity.inventoryIndicator();
 		int indicatorWidth = textRenderer.width(indicator);
 		int indicatorHeight = textRenderer.lineHeight;
