@@ -15,10 +15,10 @@
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"madoku.craft.core.MadokuCraftCore"
+			"madoku.craft.java.MadokuCraftCore"
 		],
 		"client": [
-			"madoku.craft.MadokuCraftCoreClient"
+			"madoku.craft.java.MadokuCraftCoreClient"
 		]
 	},
 	"mixins": [

@@ -36,6 +36,19 @@ loom {
 
 }
 
+sourceSets {
+	main {
+		java {
+			srcDirs = ["src/main/server"]
+		}
+	}
+	client {
+		java {
+			srcDirs = ["src/main/client"]
+		}
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
