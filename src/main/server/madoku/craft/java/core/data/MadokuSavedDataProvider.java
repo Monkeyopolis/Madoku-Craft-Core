@@ -14,10 +14,12 @@ import net.minecraft.world.level.storage.DimensionDataStorage;
 public final class MadokuSavedDataProvider implements SavedDataProvider {
 	private static final SavedDataType<MadokuSavedData> WORLD_TYPE = MadokuSavedData.type(id("world"));
 	private static final SavedDataType<MadokuSavedData> JSON_WORLD_TYPE = MadokuSavedData.type(id("json-world"));
+	private static final SavedDataType<MadokuSavedData> PLAYER_DATA_TYPE = MadokuSavedData.type(id("player-data"));
 
 	@Override public void reset() { }
 	@Override public MadokuSavedData world(MinecraftServer server) { return server == null ? null : get(server.overworld().getDataStorage(), WORLD_TYPE); }
 	@Override public MadokuSavedData jsonWorld(MinecraftServer server) { return server == null ? null : get(server.overworld().getDataStorage(), JSON_WORLD_TYPE); }
+	@Override public MadokuSavedData playerData(MinecraftServer server) { return server == null ? null : get(server.overworld().getDataStorage(), PLAYER_DATA_TYPE); }
 
 	@Override public JsonObject toJson(CompoundTag tag) {
 		if (tag == null) return new JsonObject();

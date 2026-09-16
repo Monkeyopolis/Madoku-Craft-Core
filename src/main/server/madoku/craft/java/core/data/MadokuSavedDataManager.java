@@ -21,6 +21,7 @@ public final class MadokuSavedDataManager {
 	public static void reset() { provider.reset(); }
 	public static MadokuSavedData world(MinecraftServer server) { return provider.world(server); }
 	public static MadokuSavedData jsonWorld(MinecraftServer server) { return provider.jsonWorld(server); }
+	public static MadokuSavedData playerData(MinecraftServer server) { return provider.playerData(server); }
 	public static JsonObject toJson(CompoundTag tag) { return provider.toJson(tag); }
 	public static CompoundTag toNbt(JsonObject object) { return provider.toNbt(object); }
 }

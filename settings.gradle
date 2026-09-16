@@ -18,7 +18,3 @@ pluginManagement {
 
 rootProject.name = "madoku-craft-core"
 
-gradle.startParameter.projectCacheDir = new File(
-	System.getProperty("user.home"),
-	".gradle/m/2111/${rootProject.name}"
-)

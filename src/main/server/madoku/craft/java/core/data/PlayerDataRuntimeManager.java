@@ -17,9 +17,10 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/** Internal runtime for player-owned data stored in vanilla player NBT through Fabric attachments. */
+/** Internal runtime for player-owned data with attachment migration and SavedData persistence. */
 final class PlayerDataRuntimeManager {
 	private static final String FIELD_SYSTEMS = "systems";
+	private static final String FIELD_PLAYERS = "players";
 	private static final AttachmentType<CompoundTag> PLAYER_DATA_ATTACHMENT = AttachmentRegistry.create(
 		Identifier.fromNamespaceAndPath("madoku-craft", "player-data"),
 		builder -> builder.persistent(CompoundTag.CODEC).copyOnDeath()
@@ -50,6 +51,7 @@ final class PlayerDataRuntimeManager {
 		if (server == null) return;
 		currentServer = server;
 		PLAYER_DATA.clear();
+		loadSavedPlayerData(server);
 	}
 
 	public static void onServerStarted(MinecraftServer server) {
@@ -67,6 +69,7 @@ final class PlayerDataRuntimeManager {
 	public static void savePersistedData(MinecraftServer server) {
 		if (server == null) return;
 		currentServer = server;
+		syncSavedPlayerData(server);
 		for (ServerPlayer player : server.getPlayerList().getPlayers()) syncPlayerAttachment(player);
 	}
 
@@ -148,6 +151,7 @@ final class PlayerDataRuntimeManager {
 		}
 		PLAYER_DATA.entrySet().removeIf(entry -> entry.getValue().isEmpty());
 		if (currentServer != null) {
+			syncSavedPlayerData(currentServer);
 			for (ServerPlayer player : currentServer.getPlayerList().getPlayers()) {
 				syncPlayerAttachment(player);
 			}
@@ -169,7 +173,18 @@ final class PlayerDataRuntimeManager {
 				}
 			}
 		}
-		PLAYER_DATA.put(player.getUUID(), systems);
+
+		// SavedData is the authoritative 1.21.11 fallback because player
+		// attachments are not consistently present when a player reconnects.
+		// Attachments still fill in systems created by older 26.2-style builds.
+		Map<String, JsonObject> persisted = PLAYER_DATA.get(player.getUUID());
+		if (persisted == null || persisted.isEmpty()) {
+			PLAYER_DATA.put(player.getUUID(), systems);
+		} else {
+			for (Map.Entry<String, JsonObject> entry : systems.entrySet()) {
+				persisted.putIfAbsent(entry.getKey(), entry.getValue());
+			}
+		}
 	}
 
 	private static void syncPlayerAttachment(ServerPlayer player) {
@@ -188,6 +203,48 @@ final class PlayerDataRuntimeManager {
 		((AttachmentTarget) player).setAttached(PLAYER_DATA_ATTACHMENT, root);
 	}
 
+	private static void loadSavedPlayerData(MinecraftServer server) {
+		MadokuSavedData savedData = MadokuSavedDataManager.playerData(server);
+		if (savedData == null) return;
+
+		CompoundTag players = savedData.copyData().getCompoundOrEmpty(FIELD_PLAYERS);
+		for (Map.Entry<String, Tag> playerEntry : players.entrySet()) {
+			UUID playerId = parseUuid(playerEntry.getKey());
+			if (playerId == null || !(playerEntry.getValue() instanceof CompoundTag systemsTag)) continue;
+
+			Map<String, JsonObject> systems = new LinkedHashMap<>();
+			for (Map.Entry<String, Tag> systemEntry : systemsTag.entrySet()) {
+				if (systemEntry.getValue() instanceof CompoundTag compound) {
+					systems.put(normalizeSystemId(systemEntry.getKey()), MadokuSavedDataManager.toJson(compound));
+				}
+			}
+			if (!systems.isEmpty()) PLAYER_DATA.put(playerId, systems);
+		}
+	}
+
+	private static void syncSavedPlayerData(MinecraftServer server) {
+		MadokuSavedData savedData = MadokuSavedDataManager.playerData(server);
+		if (savedData == null) return;
+
+		CompoundTag players = new CompoundTag();
+		for (Map.Entry<UUID, Map<String, JsonObject>> playerEntry : PLAYER_DATA.entrySet()) {
+			Map<String, JsonObject> systems = playerEntry.getValue();
+			if (systems == null || systems.isEmpty()) continue;
+
+			CompoundTag systemsTag = new CompoundTag();
+			for (Map.Entry<String, JsonObject> systemEntry : systems.entrySet()) {
+				if (systemEntry.getKey() != null && systemEntry.getValue() != null) {
+					systemsTag.put(systemEntry.getKey(), MadokuSavedDataManager.toNbt(systemEntry.getValue()));
+				}
+			}
+			players.put(playerEntry.getKey().toString(), systemsTag);
+		}
+
+		CompoundTag root = savedData.copyData();
+		root.put(FIELD_PLAYERS, players);
+		savedData.replaceData(root);
+	}
+
 	private static JsonObject emptyEntries(String requestedKey, String fallback) {
 		JsonObject result = new JsonObject();
 		result.add(normalizeKey(requestedKey, fallback), new JsonArray());
@@ -201,4 +258,10 @@ final class PlayerDataRuntimeManager {
 		try { return UUID.fromString(element.getAsString()); }
 		catch (RuntimeException ignored) { return null; }
 	}
+
+	private static UUID parseUuid(String value) {
+		try { return UUID.fromString(value); }
+		catch (RuntimeException ignored) { return null; }
+	}
+
 }

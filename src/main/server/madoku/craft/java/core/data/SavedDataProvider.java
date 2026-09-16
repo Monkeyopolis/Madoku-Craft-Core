@@ -10,6 +10,7 @@ public interface SavedDataProvider {
 	default void reset() { }
 	default MadokuSavedData world(MinecraftServer server) { return null; }
 	default MadokuSavedData jsonWorld(MinecraftServer server) { return null; }
+	default MadokuSavedData playerData(MinecraftServer server) { return null; }
 	default JsonObject toJson(CompoundTag tag) { return new JsonObject(); }
 	default CompoundTag toNbt(JsonObject object) { return new CompoundTag(); }
 }
