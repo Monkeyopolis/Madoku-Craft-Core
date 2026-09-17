@@ -142,7 +142,7 @@ public final class RecipesAPIManager {
 		}
 		for (ItemStack extra : extras) {
 			if (extra != null && !extra.isEmpty() && !player.getInventory().add(extra)) {
-				player.drop(extra, false);
+				player.drop(extra, false, net.minecraft.util.Prediction.SERVER_ONLY);
 			}
 		}
 	}

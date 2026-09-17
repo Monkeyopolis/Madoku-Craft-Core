@@ -182,7 +182,7 @@ public final class LootTableCropsAPIManager {
 		}
 
 		try {
-			BlockState state = context.getOptionalParameter(LootContextParams.BLOCK_STATE);
+			BlockState state = context.getOptional(LootContextParams.BLOCK_STATE);
 			if (state == null) {
 				return "";
 			}
@@ -212,7 +212,7 @@ public final class LootTableCropsAPIManager {
 		}
 
 		try {
-			Vec3 origin = context.getOptionalParameter(LootContextParams.ORIGIN);
+			Vec3 origin = context.getOptional(LootContextParams.ORIGIN);
 			return origin == null ? null : BlockPos.containing(origin);
 		} catch (RuntimeException ignored) {
 			return null;

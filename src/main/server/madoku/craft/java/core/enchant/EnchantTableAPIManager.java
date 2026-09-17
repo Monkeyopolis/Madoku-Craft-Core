@@ -131,7 +131,7 @@ public final class EnchantTableAPIManager {
 			}
 		} else {
 			if (!input.isEmpty() && !player.getInventory().add(input.copy())) {
-				player.drop(input.copy(), false);
+				player.drop(input.copy(), false, net.minecraft.util.Prediction.SERVER_ONLY);
 			}
 			menu.getSlot(0).set(result);
 		}

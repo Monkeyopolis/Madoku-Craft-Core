@@ -40,7 +40,7 @@ import net.minecraft.world.level.storage.loot.LootContext;
 import net.minecraft.world.level.storage.loot.BuiltInLootTables;
 import net.minecraft.world.level.storage.loot.LootParams;
 import net.minecraft.world.level.storage.loot.LootTable;
-import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
+import net.minecraft.world.level.storage.loot.entries.UniformContainerBase;
 import net.minecraft.world.level.storage.loot.entries.NestedLootTable;
 import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 import org.apache.commons.lang3.mutable.MutableFloat;
@@ -809,7 +809,7 @@ public final class EnchantBooksAPIManager {
 		LUCK_OF_THE_SEA_CONTEXT.remove();
 		if (params == null || !EnchantConfigAPIManager.areCustomEnchantmentsEnabled()) return;
 
-		ItemInstance toolInstance = params.contextMap().getOptional(LootContextParams.TOOL);
+		ItemInstance toolInstance = params.contextMap().get(LootContextParams.TOOL);
 		ItemStack fishingRod = toolInstance instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
 		EnchantmentDefinition definition = BooksConfigAPIManager.definition(BooksConfigAPIManager.LUCK_OF_THE_SEA_ID);
 		int level = resolveLevel(fishingRod, BooksConfigAPIManager.LUCK_OF_THE_SEA_ID);
@@ -843,16 +843,18 @@ public final class EnchantBooksAPIManager {
 
 	/** Replaces only the Luck of the Sea portion of a fishing entry's vanilla quality calculation. */
 	public static int resolveConfiguredLuckOfTheSeaWeight(
-		LootPoolSingletonContainer entryOwner,
+		UniformContainerBase entryOwner,
 		float vanillaLuck,
 		int vanillaWeight
 	) {
 		LuckOfTheSeaContext context = LUCK_OF_THE_SEA_CONTEXT.get();
 		if (context == null || !(entryOwner instanceof NestedLootTable nestedLootTable)) return vanillaWeight;
 
-		ResourceKey<LootTable> tableKey = ((NestedLootTableAccessor) (Object) nestedLootTable).madokuCraft$getContents()
-			.left()
+		Holder<LootTable> tableHolder = ((NestedLootTableAccessor) (Object) nestedLootTable).madokuCraft$getContents()
+			.stream()
+			.findFirst()
 			.orElse(null);
+		ResourceKey<LootTable> tableKey = tableHolder == null ? null : tableHolder.unwrapKey().orElse(null);
 		if (tableKey == null) return vanillaWeight;
 
 		double configuredAdjustment;
@@ -1026,7 +1028,7 @@ public final class EnchantBooksAPIManager {
 
 		ItemInstance toolInstance = lootContext == null
 			? null
-			: lootContext.getOptionalParameter(LootContextParams.TOOL);
+			: lootContext.getOptional(LootContextParams.TOOL);
 		ItemStack tool = toolInstance instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
 		RandomSource random = lootContext == null ? null : lootContext.getRandom();
 		return applyConfiguredFortuneRoll(tool, stack, random);
@@ -1082,7 +1084,7 @@ public final class EnchantBooksAPIManager {
 
 		ItemInstance toolInstance = lootContext == null
 			? null
-			: lootContext.getOptionalParameter(LootContextParams.TOOL);
+			: lootContext.getOptional(LootContextParams.TOOL);
 		ItemStack tool = toolInstance instanceof ItemStack itemStack ? itemStack : ItemStack.EMPTY;
 		RandomSource random = lootContext == null ? null : lootContext.getRandom();
 		return applyConfiguredLootingRoll(tool, stack, random);

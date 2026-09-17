@@ -9,6 +9,8 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.attribute.BedRule;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.AbstractBedBlock;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.util.Unit;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,7 +27,14 @@ public abstract class ServerPlayerSleepTimeMixin {
 			target = "Lnet/minecraft/world/attribute/BedRule;canSleep(Lnet/minecraft/world/level/Level;)Z"
 		)
 	)
-	private boolean madoku$applyConfiguredSleepTime(BedRule bedRule, Level level, BlockPos sleepingPos) {
+	private boolean madoku$applyConfiguredSleepTime(
+		BedRule bedRule,
+		Level level,
+		AbstractBedBlock bedBlock,
+		BlockState bedState,
+		BedRule bedRuleArgument,
+		BlockPos sleepingPos
+	) {
 		ServerPlayer player = (ServerPlayer) (Object) this;
 		return TimeAPIManager.shouldAllowBedSleepByTime(bedRule, level, player);
 	}
@@ -34,7 +43,13 @@ public abstract class ServerPlayerSleepTimeMixin {
 		method = "startSleepInBed",
 		at = @At("RETURN")
 	)
-	private void madoku$recordSleepStart(BlockPos sleepingPos, CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir) {
+	private void madoku$recordSleepStart(
+		AbstractBedBlock bedBlock,
+		BlockState bedState,
+		BedRule bedRule,
+		BlockPos sleepingPos,
+		CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir
+	) {
 		if (cir.getReturnValue() != null && cir.getReturnValue().right().isPresent()) {
 		TimeAPIManager.onSleepStarted((ServerPlayer) (Object) this);
 		}
@@ -49,7 +64,13 @@ public abstract class ServerPlayerSleepTimeMixin {
 		),
 		cancellable = true
 	)
-	private void madoku$replaceNightOnlySleepMessage(BlockPos sleepingPos, CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir) {
+	private void madoku$replaceNightOnlySleepMessage(
+		AbstractBedBlock bedBlock,
+		BlockState bedState,
+		BedRule bedRule,
+		BlockPos sleepingPos,
+		CallbackInfoReturnable<Either<Player.BedSleepingProblem, Unit>> cir
+	) {
 		if (TimeAPIManager.isThunderstormBypassEnabled()) {
 			return;
 		}
