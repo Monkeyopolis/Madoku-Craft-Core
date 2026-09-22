@@ -154,6 +154,21 @@ final class PlayerDataRuntimeManager {
 		}
 	}
 
+	/** Stores one system's data directly on a player's attachment and synchronizes it immediately. */
+	public static void setSystemDataForPlayer(ServerPlayer player, String systemId, JsonObject data) {
+		if (player == null) return;
+		String normalizedSystemId = normalizeSystemId(systemId);
+		if (normalizedSystemId.isBlank()) return;
+
+		currentServer = player.level().getServer();
+		loadPlayerAttachment(player);
+		Map<String, JsonObject> systems = PLAYER_DATA.computeIfAbsent(player.getUUID(), ignored -> new LinkedHashMap<>());
+		if (data == null) systems.remove(normalizedSystemId);
+		else systems.put(normalizedSystemId, data.deepCopy());
+		if (systems.isEmpty()) PLAYER_DATA.remove(player.getUUID());
+		syncPlayerAttachment(player);
+	}
+
 	public static long getAutoSaveIntervalTicks() { return WorldChunkDataRuntimeManager.getAutoSaveIntervalTicks(); }
 
 	private static void loadPlayerAttachment(ServerPlayer player) {

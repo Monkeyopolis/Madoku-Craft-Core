@@ -18,5 +18,6 @@ public final class MadokuPlayerDataProvider implements PlayerDataProvider {
 	@Override public JsonObject getSystemDataForPlayer(ServerPlayer player, String systemId, String entriesKey, String playerIdKey) { return PlayerDataRuntimeManager.getSystemDataForPlayer(player, systemId, entriesKey, playerIdKey); }
 	@Override public void setSystemData(String systemId, JsonObject data) { PlayerDataRuntimeManager.setSystemData(systemId, data); }
 	@Override public void setSystemData(String systemId, JsonObject data, String entriesKey, String playerIdKey) { PlayerDataRuntimeManager.setSystemData(systemId, data, entriesKey, playerIdKey); }
+	@Override public void setSystemDataForPlayer(ServerPlayer player, String systemId, JsonObject data) { PlayerDataRuntimeManager.setSystemDataForPlayer(player, systemId, data); }
 	@Override public long getAutoSaveIntervalTicks() { return PlayerDataRuntimeManager.getAutoSaveIntervalTicks(); }
 }

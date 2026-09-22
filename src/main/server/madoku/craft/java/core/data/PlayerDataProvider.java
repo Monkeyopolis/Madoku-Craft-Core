@@ -18,5 +18,7 @@ public interface PlayerDataProvider {
 	default JsonObject getSystemDataForPlayer(ServerPlayer player, String systemId, String entriesKey, String playerIdKey) { return new JsonObject(); }
 	default void setSystemData(String systemId, JsonObject data) { }
 	default void setSystemData(String systemId, JsonObject data, String entriesKey, String playerIdKey) { }
+	/** Stores one system's data directly on the supplied player's persistent attachment. */
+	default void setSystemDataForPlayer(ServerPlayer player, String systemId, JsonObject data) { }
 	default long getAutoSaveIntervalTicks() { return 0L; }
 }

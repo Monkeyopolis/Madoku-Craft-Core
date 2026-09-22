@@ -28,5 +28,6 @@ public final class PlayerDataAPIManager {
 	public static JsonObject getSystemDataForPlayer(ServerPlayer player, String systemId, String entriesKey, String playerIdKey) { return provider.getSystemDataForPlayer(player, systemId, entriesKey, playerIdKey); }
 	public static void setSystemData(String systemId, JsonObject data) { provider.setSystemData(systemId, data); }
 	public static void setSystemData(String systemId, JsonObject data, String entriesKey, String playerIdKey) { provider.setSystemData(systemId, data, entriesKey, playerIdKey); }
+	public static void setSystemDataForPlayer(ServerPlayer player, String systemId, JsonObject data) { provider.setSystemDataForPlayer(player, systemId, data); }
 	public static long getAutoSaveIntervalTicks() { return provider.getAutoSaveIntervalTicks(); }
 }
