@@ -67,10 +67,10 @@ public final class LevelsMenuScreen extends Screen {
 	private static final int ATTRIBUTE_VIEWPORT_WIDTH = 169;
 	private static final int ATTRIBUTE_VIEWPORT_HEIGHT = 112;
 	private static final int SCROLLER_X = 180;
-	private static final int SCROLLER_Y = 33;
+	private static final int SCROLLER_Y = 34;
 	private static final int SCROLLER_WIDTH = 10;
 	private static final int SCROLLER_HEIGHT = 15;
-	private static final int SCROLLER_TRACK_HEIGHT = 133;
+	private static final int SCROLLER_TRACK_HEIGHT = 131;
 	private static final int SCROLL_STEP = 16;
 	private int scrollOffset;
 	private boolean draggingScroller;

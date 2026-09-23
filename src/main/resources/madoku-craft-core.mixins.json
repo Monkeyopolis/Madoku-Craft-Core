@@ -41,8 +41,6 @@
     "core.GuiGraphicsRarityOverlayMixin",
     "core.SmithingScreenMixin",
     "inventory.AbstractContainerScreenAccessor",
-    "inventory.CreativeModeInventoryScreenAccessor",
-    "inventory.CreativeModeSlotWrapperAccessor",
     "inventory.InventoryScreenLabelMixin"
   ],
   "injectors": { "defaultRequire": 1 }

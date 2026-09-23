@@ -13,24 +13,28 @@ import java.util.List;
 
 /** Main player menu opened by the configurable Tab keybind. */
 public final class MenuScreen extends Screen {
-	private static final Identifier BACKGROUND_TEXTURE = texture("main-menu/menu-five.png");
+	private static final Identifier BACKGROUND_SMALL_TEXTURE = texture("main-menu/small-menu-container.png");
+	private static final Identifier BACKGROUND_MEDIUM_TEXTURE = texture("main-menu/medium-menu-container.png");
+	private static final Identifier BACKGROUND_LARGE_TEXTURE = texture("main-menu/large-menu-container.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");
 	private static final Identifier EXIT_HIGHLIGHTED_TEXTURE = texture("shared-ui/exit-button-highlighted.png");
 	private static final int TEXTURE_SIZE = 256;
 	private static final int BACKGROUND_RENDER_WIDTH = 256;
 	private static final int BACKGROUND_RENDER_HEIGHT = 256;
-	private static final int PANEL_WIDTH = 128;
-	private static final int PANEL_HEIGHT = 136;
+	private static final int PANEL_WIDTH = 134;
+	private static final int PANEL_HEIGHT_SMALL = 92;
+	private static final int PANEL_HEIGHT_MEDIUM = 124;
+	private static final int PANEL_HEIGHT_LARGE = 156;
 	private static final int FACE_SIZE = 32;
 	private static final int FACE_SOURCE_SIZE = 8;
-	private static final int FACE_LEFT_INSET = 7;
+	private static final int FACE_LEFT_INSET = 8;
 	private static final int FACE_TOP_INSET = 8;
 	private static final int BUTTON_WIDTH = 56;
 	private static final int BUTTON_HEIGHT = 24;
-	private static final int BUTTON_COLUMN_GAP = 4;
-	private static final int BUTTON_ROW_GAP = 4;
-	private static final int BUTTON_LEFT_INSET = 6;
-	private static final int BUTTON_TOP = 48;
+	private static final int BUTTON_COLUMN_GAP = 8;
+	private static final int BUTTON_ROW_GAP = 8;
+	private static final int BUTTON_LEFT_INSET = 7;
+	private static final int BUTTON_TOP = 53;
 	private static final int BUTTON_ICON_LEFT_INSET = 3;
 	private static final int BUTTON_ICON_TOP_INSET = 6;
 	private static final int BUTTON_ICON_SLOT_SIZE = 12;
@@ -38,14 +42,15 @@ public final class MenuScreen extends Screen {
 	private static final int BUTTON_TEXT_COLOR = 0xFF404040;
 	private static final float BUTTON_TEXT_SCALE = 0.8F;
 	private static final int EXIT_SIZE = 12;
-	private static final int EXIT_RIGHT_INSET = 6;
+	private static final int EXIT_RIGHT_INSET = 7;
 	private static final int EXIT_TOP_INSET = 7;
 	private static final int HEADER_TEXT_COLOR = 0xFF404040;
-	private static final int HEADER_CENTER_X = 75;
+	private static final int HEADER_CENTER_X = 78;
 	private static final int HEADER_SEPARATOR_Y = 23;
 	private static final int HEADER_SEPARATOR_HEIGHT = 2;
 	private static final int HEADER_TEXT_GAP = 2;
-	private static final float HEADER_TEXT_SCALE = 0.7F;
+	private static final float HEADER_TEXT_SCALE = 0.8F;
+	private static final float PLAYER_NAME_TEXT_SCALE = 0.9F;
 
 	public MenuScreen() {
 		super(Component.translatable("menu.madoku-craft.title"));
@@ -73,15 +78,16 @@ public final class MenuScreen extends Screen {
 		int button = event.button();
 		if (button != 1) return super.mouseClicked(event, doubleClick);
 
+		List<MenuEntry> entries = MenuAPIManager.entries();
+		int visibleEntryCount = Math.min(entries.size(), 5);
 		int panelX = panelX();
-		int panelY = panelY();
+		int panelY = panelY(visibleEntryCount);
 		if (contains(panelX + PANEL_WIDTH - EXIT_RIGHT_INSET - EXIT_SIZE, panelY + EXIT_TOP_INSET, EXIT_SIZE, EXIT_SIZE, mouseX, mouseY)) {
 			onClose();
 			return true;
 		}
 
-		List<MenuEntry> entries = MenuAPIManager.entries();
-		for (int index = 0; index < Math.min(entries.size(), 5); index++) {
+		for (int index = 0; index < visibleEntryCount; index++) {
 			if (buttonBounds(panelX, panelY, index).contains(mouseX, mouseY)) {
 				MenuAPIManager.openEntry(entries.get(index).id(), Minecraft.getInstance());
 				return true;
@@ -93,11 +99,13 @@ public final class MenuScreen extends Screen {
 	private void renderMenu(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
 		guiGraphics.fill(RenderPipelines.GUI, 0, 0, this.width, this.height, 0x88000000);
 
+		List<MenuEntry> entries = MenuAPIManager.entries();
+		int visibleEntryCount = Math.min(entries.size(), 5);
 		int panelX = panelX();
-		int panelY = panelY();
+		int panelY = panelY(visibleEntryCount);
 		guiGraphics.blit(
 			RenderPipelines.GUI_TEXTURED,
-			BACKGROUND_TEXTURE,
+			backgroundTexture(visibleEntryCount),
 			panelX,
 			panelY,
 			0.0F,
@@ -113,7 +121,7 @@ public final class MenuScreen extends Screen {
 
 		String username = client.player == null ? "" : client.player.getName().getString();
 		String experienceLevel = Component.translatable("menu.madoku-craft.experience_level", client.player == null ? 0 : client.player.experienceLevel).getString();
-		drawScaledCenteredText(guiGraphics, username, panelX + HEADER_CENTER_X, panelY + headerNameY(), HEADER_TEXT_SCALE, HEADER_TEXT_COLOR);
+		drawScaledCenteredText(guiGraphics, username, panelX + HEADER_CENTER_X, panelY + headerNameY() + 1, PLAYER_NAME_TEXT_SCALE, HEADER_TEXT_COLOR);
 		drawScaledCenteredText(guiGraphics, experienceLevel, panelX + HEADER_CENTER_X, panelY + headerLevelY(), HEADER_TEXT_SCALE, HEADER_TEXT_COLOR);
 
 		boolean exitHovered = contains(panelX + PANEL_WIDTH - EXIT_RIGHT_INSET - EXIT_SIZE, panelY + EXIT_TOP_INSET, EXIT_SIZE, EXIT_SIZE, mouseX, mouseY);
@@ -130,8 +138,7 @@ public final class MenuScreen extends Screen {
 			EXIT_SIZE
 		);
 
-		List<MenuEntry> entries = MenuAPIManager.entries();
-		for (int index = 0; index < Math.min(entries.size(), 5); index++) {
+		for (int index = 0; index < visibleEntryCount; index++) {
 			MenuEntry entry = entries.get(index);
 			Bounds bounds = buttonBounds(panelX, panelY, index);
 			boolean hovered = bounds.contains(mouseX, mouseY);
@@ -174,15 +181,25 @@ public final class MenuScreen extends Screen {
 	private Bounds buttonBounds(int panelX, int panelY, int index) {
 		int row = index / 2;
 		int column = index % 2;
-		if (index == 4) column = 0;
 		int x = panelX + BUTTON_LEFT_INSET + column * (BUTTON_WIDTH + BUTTON_COLUMN_GAP);
-		if (index == 4) x = panelX + (PANEL_WIDTH - BUTTON_WIDTH) / 2;
 		int y = panelY + BUTTON_TOP + row * (BUTTON_HEIGHT + BUTTON_ROW_GAP);
 		return new Bounds(x, y, BUTTON_WIDTH, BUTTON_HEIGHT);
 	}
 
+	private Identifier backgroundTexture(int entryCount) {
+		return entryCount <= 2
+			? BACKGROUND_SMALL_TEXTURE
+			: entryCount <= 4 ? BACKGROUND_MEDIUM_TEXTURE : BACKGROUND_LARGE_TEXTURE;
+	}
+
+	private int panelHeight(int entryCount) {
+		return entryCount <= 2
+			? PANEL_HEIGHT_SMALL
+			: entryCount <= 4 ? PANEL_HEIGHT_MEDIUM : PANEL_HEIGHT_LARGE;
+	}
+
 	private int panelX() { return (this.width - PANEL_WIDTH) / 2; }
-	private int panelY() { return (this.height - PANEL_HEIGHT) / 2; }
+	private int panelY(int entryCount) { return (this.height - panelHeight(entryCount)) / 2; }
 
 	private int headerNameY() {
 		return HEADER_SEPARATOR_Y - HEADER_TEXT_GAP - scaledTextHeight(HEADER_TEXT_SCALE);
