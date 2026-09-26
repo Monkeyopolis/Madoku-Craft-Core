@@ -23,9 +23,6 @@
     "core.ResultSlotRarityMixin",
     "core.ServerClockManagerMixin",
     "core.ServerPlayerSleepTimeMixin",
-    "core.SmithingItemCombinerMenuMixin",
-    "core.SmithingMenuMixin",
-    "core.SmithingTransformRecipeRarityMixin",
     "core.TimelineMixin",
     "inventory.SlotAccessor",
     "item.ItemBuiltInRegistryHolderAccessor",
@@ -39,7 +36,6 @@
   "client": [
     "core.EnchantmentScreenMixin",
     "core.GuiGraphicsRarityOverlayMixin",
-    "core.SmithingScreenMixin",
     "inventory.AbstractContainerScreenAccessor",
     "inventory.InventoryScreenLabelMixin"
   ],

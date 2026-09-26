@@ -13,9 +13,9 @@ import java.util.List;
 
 /** Main player menu opened by the configurable Tab keybind. */
 public final class MenuScreen extends Screen {
-	private static final Identifier BACKGROUND_SMALL_TEXTURE = texture("main-menu/small-menu-container.png");
-	private static final Identifier BACKGROUND_MEDIUM_TEXTURE = texture("main-menu/medium-menu-container.png");
-	private static final Identifier BACKGROUND_LARGE_TEXTURE = texture("main-menu/large-menu-container.png");
+	private static final Identifier BACKGROUND_SMALL_TEXTURE = texture("madoku-menu/main-menu/small-menu-container.png");
+	private static final Identifier BACKGROUND_MEDIUM_TEXTURE = texture("madoku-menu/main-menu/medium-menu-container.png");
+	private static final Identifier BACKGROUND_LARGE_TEXTURE = texture("madoku-menu/main-menu/large-menu-container.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");
 	private static final Identifier EXIT_HIGHLIGHTED_TEXTURE = texture("shared-ui/exit-button-highlighted.png");
 	private static final int TEXTURE_SIZE = 256;

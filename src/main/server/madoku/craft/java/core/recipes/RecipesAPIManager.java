@@ -9,7 +9,6 @@ import madoku.craft.java.core.json.JSONFormatAPIManager;
 import madoku.craft.java.core.json.JSONAPIManager;
 import madoku.craft.java.core.rarity.RarityAPIManager;
 import madoku.craft.java.core.sync.SyncConfigAPIManager;
-import madoku.craft.java.core.rarity.RarityAPIManager.Tier;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceKey;
@@ -145,28 +144,6 @@ public final class RecipesAPIManager {
 				player.drop(extra, false, net.minecraft.util.Prediction.SERVER_ONLY);
 			}
 		}
-	}
-
-	/** Owns the smithing-result transaction while rarity supplies the carried tier. */
-	public static ItemStack createSmithingUpgradeResult(ItemStack baseStack, ItemStack vanillaResult) {
-		if (baseStack == null || baseStack.isEmpty()
-			|| vanillaResult == null || vanillaResult.isEmpty()
-			|| !RecipesItemAPIManager.isRarityCategoryItem(baseStack)
-			|| !RecipesItemAPIManager.isRarityCategoryItem(vanillaResult)) {
-			return vanillaResult;
-		}
-
-		ItemStack rebuiltResult = vanillaResult.copy();
-		RecipesItemAPIManager.applyConfiguredItemLevel(rebuiltResult, 1);
-		if (!isInitialized() || !loadSystemEnabled()) {
-			return rebuiltResult;
-		}
-
-		Tier sourceRarity = RarityAPIManager.detectAppliedRarity(baseStack);
-		if (sourceRarity != null) {
-			RarityAPIManager.applyConfiguredRarity(rebuiltResult, sourceRarity);
-		}
-		return rebuiltResult;
 	}
 
 	private static boolean isManagedRecipe(RecipeHolder<?> holder) {

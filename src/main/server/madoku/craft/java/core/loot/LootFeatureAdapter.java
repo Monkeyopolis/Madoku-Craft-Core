@@ -3,6 +3,7 @@ package madoku.craft.java.core.loot;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -15,6 +16,7 @@ public interface LootFeatureAdapter {
 	default ServerPlayer resolveActiveDropPlayer() { return null; }
 	default double resolveLootLuckStat(ServerPlayer player) { return 0.0d; }
 	default void applyManagedMobDrops(ServerPlayer player, RandomSource random, ObjectArrayList<ItemStack> stacks) { }
+	default ServerPlayer resolvePlayerDamageSource(DamageSource damageSource) { return null; }
 
 	default boolean isFarmingEnabled() { return false; }
 

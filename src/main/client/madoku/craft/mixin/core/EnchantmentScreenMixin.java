@@ -19,8 +19,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(EnchantmentScreen.class)
 public abstract class EnchantmentScreenMixin {
-	private static final Identifier MADOKU_BOOK_SLOT = Identifier.fromNamespaceAndPath("madoku-craft", "textures/icons/book-slot.png");
-	private static final Identifier MADOKU_BOTTLE_SLOT = Identifier.fromNamespaceAndPath("madoku-craft", "textures/icons/bottle-slot.png");
+	private static final Identifier MADOKU_BOOK_SLOT = Identifier.fromNamespaceAndPath("madoku-craft", "textures/shared-ui/book-slot.png");
+	private static final Identifier MADOKU_BOTTLE_SLOT = Identifier.fromNamespaceAndPath("madoku-craft", "textures/shared-ui/bottle-slot.png");
 	@Unique private int madokuCraft$slotIconTick;
 
 	@Inject(method = "containerTick()V", at = @At("TAIL"))

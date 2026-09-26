@@ -12,12 +12,12 @@ import java.util.List;
 
 /** Core-owned player levels screen backed by the optional Levels menu provider. */
 public final class LevelsMenuScreen extends Screen {
-	private static final Identifier BACKGROUND_SMALL_TEXTURE = texture("levels-menu/small-levels-container.png");
-	private static final Identifier BACKGROUND_NORMAL_TEXTURE = texture("levels-menu/normal-levels-container.png");
-	private static final Identifier BACKGROUND_LARGE_TEXTURE = texture("levels-menu/large-levels-container.png");
-	private static final Identifier BACKGROUND_SCROLLING_TEXTURE = texture("levels-menu/scrolling-levels-container.png");
-	private static final Identifier EMPTY_EXPERIENCE_TEXTURE = texture("levels-menu/empty-experience-bar.png");
-	private static final Identifier FULL_EXPERIENCE_TEXTURE = texture("levels-menu/full-experience-bar.png");
+	private static final Identifier BACKGROUND_SMALL_TEXTURE = texture("madoku-menu/levels-menu/small-levels-container.png");
+	private static final Identifier BACKGROUND_NORMAL_TEXTURE = texture("madoku-menu/levels-menu/normal-levels-container.png");
+	private static final Identifier BACKGROUND_LARGE_TEXTURE = texture("madoku-menu/levels-menu/large-levels-container.png");
+	private static final Identifier BACKGROUND_SCROLLING_TEXTURE = texture("madoku-menu/levels-menu/scrolling-levels-container.png");
+	private static final Identifier EMPTY_EXPERIENCE_TEXTURE = texture("madoku-menu/levels-menu/empty-experience-bar.png");
+	private static final Identifier FULL_EXPERIENCE_TEXTURE = texture("madoku-menu/levels-menu/full-experience-bar.png");
 	private static final Identifier CONFIRM_TEXTURE = texture("shared-ui/confirm-button.png");
 	private static final Identifier CONFIRM_HIGHLIGHTED_TEXTURE = texture("shared-ui/confirm-button-highlighted.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");

@@ -8,7 +8,6 @@ import madoku.craft.java.core.data.MadokuDataProvider;
 import madoku.craft.java.core.enchant.EnchantAPIManager;
 import madoku.craft.java.core.enchant.MadokuEnchantProvider;
 import madoku.craft.java.core.loot.MadokuLootTableProvider;
-import madoku.craft.java.core.smithing.MadokuSmithingProvider;
 import madoku.craft.java.core.helper.HelperAPIManager;
 import madoku.craft.java.core.helper.BlockDropContextAPIManager;
 import madoku.craft.java.core.helper.MadokuBlockDropContextProvider;
@@ -21,7 +20,6 @@ import madoku.craft.java.core.recipes.RecipesAPIManager;
 import madoku.craft.java.core.runtime.AdaptiveIntervalAPIManager;
 import madoku.craft.java.core.runtime.MadokuAdaptiveIntervalProvider;
 import madoku.craft.java.core.season.SeasonAPIManager;
-import madoku.craft.java.core.smithing.SmithingAPIManager;
 import madoku.craft.java.core.sync.SyncAPIManager;
 import madoku.craft.java.core.sync.SyncConfigAPIManager;
 import madoku.craft.java.core.sync.MadokuSyncProvider;
@@ -64,8 +62,6 @@ public final class MadokuCoreManager {
 		LootTableAPIManager.initialize();
 		EnchantAPIManager.registerProvider(new MadokuEnchantProvider());
 		EnchantAPIManager.initialize();
-		SmithingAPIManager.registerProvider(new MadokuSmithingProvider());
-		SmithingAPIManager.initialize();
 		RarityAPIManager.registerProvider(new MadokuRarityProvider());
 		RarityAPIManager.initialize();
 	}
@@ -105,7 +101,6 @@ public final class MadokuCoreManager {
 		RecipesAPIManager.reset();
 		LootTableAPIManager.reset();
 		EnchantAPIManager.reset();
-		SmithingAPIManager.reset();
 		RarityAPIManager.reset();
 	}
 
@@ -126,7 +121,6 @@ public final class MadokuCoreManager {
 		LootTableAPIManager.initialize();
 		EnchantAPIManager.initialize();
 		RarityAPIManager.initialize();
-		SmithingAPIManager.onServerStarted(server);
 		TimeAPIManager.broadcastWorldTimeNow(server);
 		SeasonAPIManager.broadcastWorldSeasonNow(server);
 	}

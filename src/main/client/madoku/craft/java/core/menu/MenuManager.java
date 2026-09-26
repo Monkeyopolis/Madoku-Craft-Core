@@ -87,19 +87,19 @@ public final class MenuManager {
 	private static MenuEntry levelsEntry() {
 		String id = "levels";
 		String labelKey = "menu.madoku-craft.levels";
-		Identifier texture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/main-menu/levels-button.png");
-		Identifier highlightedTexture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/main-menu/levels-button-highlighted.png");
+		Identifier texture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/madoku-menu/main-menu/levels-button.png");
+		Identifier highlightedTexture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/madoku-menu/main-menu/levels-button-highlighted.png");
 		return new MenuEntry(id, labelKey, texture, highlightedTexture, 30, client -> LevelsMenuClientAPIManager.open());
 	}
 
 	private static MenuEntry defaultEntry(String id, String labelKey, String textureName, int order) {
 		Identifier texture = Identifier.fromNamespaceAndPath(
 			"madoku-craft",
-			"textures/main-menu/" + textureName + ".png"
+			"textures/madoku-menu/main-menu/" + textureName + ".png"
 		);
 		Identifier highlightedTexture = Identifier.fromNamespaceAndPath(
 			"madoku-craft",
-			"textures/main-menu/" + textureName + "-highlighted.png"
+			"textures/madoku-menu/main-menu/" + textureName + "-highlighted.png"
 		);
 		return new MenuEntry(
 			id,
