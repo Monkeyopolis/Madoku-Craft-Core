@@ -113,6 +113,7 @@ public final class StructuresConfigManager {
 			StructuresConfigManager.item("madoku-craft:skeleton-pet", 80, 1, 1),
 			StructuresConfigManager.item("madoku-craft:spider-pet", 80, 1, 1),
 			StructuresConfigManager.item("madoku-craft:creeper-pet", 80, 1, 1),
+			StructuresConfigManager.item("madoku-craft:goat-pet", 80, 1, 1),
 			StructuresConfigManager.item("madoku-craft:bat-pet", 60, 1, 1),
 			StructuresConfigManager.item("madoku-craft:bee-pet", 60, 1, 1),
 			StructuresConfigManager.item("madoku-craft:chicken-pet", 40, 1, 1)
