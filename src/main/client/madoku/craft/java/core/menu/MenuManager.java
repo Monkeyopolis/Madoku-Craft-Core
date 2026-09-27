@@ -73,8 +73,6 @@ public final class MenuManager {
 	}
 
 	private static void registerDefaultEntries() {
-		registerDefaultEntry(defaultEntry("player_stats", "menu.madoku-craft.player_stats", "player-stats-button", 10));
-		registerDefaultEntry(defaultEntry("settings", "menu.madoku-craft.settings", "settings-button", 20));
 		registerDefaultEntry(levelsEntry());
 		registerDefaultEntry(defaultEntry("items", "menu.madoku-craft.items", "items-button", 40));
 		registerDefaultEntry(defaultEntry("pets", "menu.madoku-craft.pets", "pets-button", 50));

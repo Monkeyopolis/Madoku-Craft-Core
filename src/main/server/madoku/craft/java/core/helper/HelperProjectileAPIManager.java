@@ -101,6 +101,17 @@ public final class HelperProjectileAPIManager {
 		float speed,
 		float damage
 	) {
+		return spawnManagedHomingArrow(shooter, target, spawnPosition, speed, damage, MANAGED_PROJECTILE_LIFETIME_TICKS);
+	}
+
+	public static boolean spawnManagedHomingArrow(
+		LivingEntity shooter,
+		LivingEntity target,
+		Vec3 spawnPosition,
+		float speed,
+		float damage,
+		long lifetimeTicks
+	) {
 		if (shooter == null || target == null || !target.isAlive() || spawnPosition == null || !(shooter.level() instanceof ServerLevel level)) {
 			return false;
 		}
@@ -116,7 +127,7 @@ public final class HelperProjectileAPIManager {
 		arrow.pickup = AbstractArrow.Pickup.DISALLOWED;
 		setProjectileDamageOverride(arrow, damage);
 		INVULNERABILITY_BYPASS_PROJECTILES.add(arrow.getUUID());
-		trackManagedProjectile(arrow);
+		trackManagedProjectile(arrow, lifetimeTicks);
 		startProjectileHoming(arrow, target);
 		level.addFreshEntity(arrow);
 		return true;
@@ -138,8 +149,15 @@ public final class HelperProjectileAPIManager {
 	}
 
 	public static void trackManagedProjectile(AbstractArrow projectile) {
+		trackManagedProjectile(projectile, MANAGED_PROJECTILE_LIFETIME_TICKS);
+	}
+
+	public static void trackManagedProjectile(AbstractArrow projectile, long lifetimeTicks) {
 		if (projectile != null) {
-			MANAGED_PROJECTILES.put(projectile.getUUID(), MANAGED_PROJECTILE_LIFETIME_TICKS);
+			MANAGED_PROJECTILES.put(
+				projectile.getUUID(),
+				(int) Math.min(Integer.MAX_VALUE, Math.max(1L, lifetimeTicks))
+			);
 		}
 	}
 
