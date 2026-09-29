@@ -5,7 +5,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
 import java.util.Comparator;
@@ -30,7 +29,6 @@ public final class MenuManager {
 	public static void initialize() {
 		if (initialized) return;
 
-		registerDefaultEntries();
 		KeyMappingHelper.registerKeyMapping(OPEN_MENU_KEY);
 		ClientTickEvents.END_CLIENT_TICK.register(MenuManager::handleClientTick);
 		initialized = true;
@@ -42,7 +40,7 @@ public final class MenuManager {
 	}
 
 	public static void open(Minecraft client) {
-		if (client == null || client.player == null || client.gui.screen() != null) return;
+		if (client == null || client.player == null || client.gui.screen() != null || ENTRIES.isEmpty()) return;
 		client.setScreenAndShow(new MenuScreen());
 	}
 
@@ -72,40 +70,4 @@ public final class MenuManager {
 		if (OPEN_MENU_KEY.consumeClick() && client.gui.screen() == null) open(client);
 	}
 
-	private static void registerDefaultEntries() {
-		registerDefaultEntry(levelsEntry());
-		registerDefaultEntry(defaultEntry("items", "menu.madoku-craft.items", "items-button", 40));
-		registerDefaultEntry(defaultEntry("pets", "menu.madoku-craft.pets", "pets-button", 50));
-	}
-
-	private static void registerDefaultEntry(MenuEntry entry) {
-		ENTRIES.putIfAbsent(entry.id(), entry);
-	}
-
-	private static MenuEntry levelsEntry() {
-		String id = "levels";
-		String labelKey = "menu.madoku-craft.levels";
-		Identifier texture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/madoku-menu/main-menu/levels-button.png");
-		Identifier highlightedTexture = Identifier.fromNamespaceAndPath("madoku-craft", "textures/madoku-menu/main-menu/levels-button-highlighted.png");
-		return new MenuEntry(id, labelKey, texture, highlightedTexture, 30, client -> LevelsMenuClientAPIManager.open());
-	}
-
-	private static MenuEntry defaultEntry(String id, String labelKey, String textureName, int order) {
-		Identifier texture = Identifier.fromNamespaceAndPath(
-			"madoku-craft",
-			"textures/madoku-menu/main-menu/" + textureName + ".png"
-		);
-		Identifier highlightedTexture = Identifier.fromNamespaceAndPath(
-			"madoku-craft",
-			"textures/madoku-menu/main-menu/" + textureName + "-highlighted.png"
-		);
-		return new MenuEntry(
-			id,
-			labelKey,
-			texture,
-			highlightedTexture,
-			order,
-			client -> client.setScreenAndShow(new MenuPlaceholderScreen(Component.translatable(labelKey)))
-		);
-	}
 }

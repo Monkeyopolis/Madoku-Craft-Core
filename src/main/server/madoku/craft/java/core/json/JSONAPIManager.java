@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Runtime API subsystem orchestrating JSON formatting and type management. */
 public final class JSONAPIManager {
 	private static final String GLOBAL_ROOT_FOLDER_NAME = "madoku-craft";
+	private static final String CORE_MOD_ID = "madoku-craft-core";
 	private static final long DEFAULT_AUTO_SAVE_MINUTES = 5L;
 	private static final Map<String, JsonObject> SETTINGS_CACHE = new ConcurrentHashMap<>();
 	private static volatile String cachedModVersion;
@@ -107,7 +108,9 @@ public final class JSONAPIManager {
 	public static String getCurrentModVersion() {
 		String cached = cachedModVersion;
 		if (cached != null && !cached.isBlank()) return cached;
-		cachedModVersion = FabricLoader.getInstance().getModContainer(GLOBAL_ROOT_FOLDER_NAME)
+		FabricLoader loader = FabricLoader.getInstance();
+		cachedModVersion = loader.getModContainer(CORE_MOD_ID)
+			.or(() -> loader.getModContainer(GLOBAL_ROOT_FOLDER_NAME))
 			.map(container -> container.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
 		return cachedModVersion;
 	}
