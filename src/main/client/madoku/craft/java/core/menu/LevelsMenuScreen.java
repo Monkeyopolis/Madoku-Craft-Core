@@ -20,6 +20,7 @@ public final class LevelsMenuScreen extends Screen {
 	private static final Identifier FULL_EXPERIENCE_TEXTURE = texture("madoku-menu/levels-menu/full-experience-bar.png");
 	private static final Identifier CONFIRM_TEXTURE = texture("shared-ui/confirm-button.png");
 	private static final Identifier CONFIRM_HIGHLIGHTED_TEXTURE = texture("shared-ui/confirm-button-highlighted.png");
+	private static final Identifier CONFIRM_LOCKED_TEXTURE = texture("shared-ui/confirm-button-locked.png");
 	private static final Identifier EXIT_TEXTURE = texture("shared-ui/exit-button.png");
 	private static final Identifier EXIT_HIGHLIGHTED_TEXTURE = texture("shared-ui/exit-button-highlighted.png");
 	private static final Identifier SCROLLER_TEXTURE = texture("shared-ui/scroller.png");
@@ -278,7 +279,9 @@ public final class LevelsMenuScreen extends Screen {
 			drawScaledCenteredText(guiGraphics, stat.level() + "/" + stat.maxLevel(), entry.x() + STAT_TEXT_CENTER_X, entry.y() + statLevelY(), STAT_LEVEL_SCALE, SUBTEXT_COLOR);
 			guiGraphics.blit(
 				RenderPipelines.GUI_TEXTURED,
-				active && hovered ? CONFIRM_HIGHLIGHTED_TEXTURE : CONFIRM_TEXTURE,
+				stat.level() >= stat.maxLevel()
+					? CONFIRM_LOCKED_TEXTURE
+					: active && hovered ? CONFIRM_HIGHLIGHTED_TEXTURE : CONFIRM_TEXTURE,
 				entry.x() + STAT_BUTTON_X,
 				entry.y() + STAT_BUTTON_Y,
 				0.0F,

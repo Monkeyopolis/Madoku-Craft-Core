@@ -16,5 +16,6 @@
   "menu.madoku-craft.levels.level": "Level: %s",
   "menu.madoku-craft.levels.points": "Points: %s",
   "menu.madoku-craft.levels.experience": "%s / %s XP",
-  "menu.madoku-craft.levels.waiting": "Waiting for level data..."
+  "menu.madoku-craft.levels.waiting": "Waiting for level data...",
+  "item.madoku-craft.essence": "Essence"
 }

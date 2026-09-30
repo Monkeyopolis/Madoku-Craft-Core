@@ -7,6 +7,7 @@ import madoku.craft.java.core.data.MadokuChunkDataProvider;
 import madoku.craft.java.core.data.MadokuDataProvider;
 import madoku.craft.java.core.enchant.EnchantAPIManager;
 import madoku.craft.java.core.enchant.MadokuEnchantProvider;
+import madoku.craft.java.core.essence.EssenceManager;
 import madoku.craft.java.core.loot.MadokuLootTableProvider;
 import madoku.craft.java.core.helper.HelperAPIManager;
 import madoku.craft.java.core.helper.BlockDropContextAPIManager;
@@ -40,6 +41,7 @@ public final class MadokuCoreManager {
 
 	/** Initializes the shared core services and all core subsystems. */
 	public static void initialize() {
+		EssenceManager.initialize();
 		BlockDropContextAPIManager.registerProvider(new MadokuBlockDropContextProvider());
 		HelperAPIManager.registerProvider(new MadokuHelperProvider());
 		HelperAPIManager.initialize();
