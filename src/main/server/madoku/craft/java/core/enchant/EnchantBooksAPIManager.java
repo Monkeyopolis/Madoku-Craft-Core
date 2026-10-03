@@ -79,6 +79,7 @@ public final class EnchantBooksAPIManager {
 	private static final ThreadLocal<Boolean> THORNS_POST_ATTACK_CONTEXT = new ThreadLocal<>();
 	private static final ThreadLocal<Float> INCOMING_DAMAGE_CONTEXT = new ThreadLocal<>();
 	private static final Map<UUID, SmiteVulnerabilityState> SMITE_VULNERABILITY_BY_ENTITY = new ConcurrentHashMap<>();
+	private static final String SMITE_VULNERABILITY_VALUE_PREFIX = "madoku-craft.smite-vulnerability-value:";
 	private static final String UNBREAKING_BASE_MAX_DAMAGE_KEY = "madoku_craft_unbreaking_base_max_damage";
 	private static final String UNBREAKING_BASE_DAMAGE_KEY = "madoku_craft_unbreaking_base_damage";
 	private static final String UNBREAKING_APPLIED_MAX_DAMAGE_KEY = "madoku_craft_unbreaking_applied_max_damage";
@@ -618,9 +619,11 @@ public final class EnchantBooksAPIManager {
 		}
 		float vulnerability = (float) Math.max(0.0D, vulnerabilityPercent / 100.0D);
 		if (vulnerability > 0.0F && glowDurationTicks > 0) {
-			SMITE_VULNERABILITY_BY_ENTITY.put(livingTarget.getUUID(), new SmiteVulnerabilityState(vulnerability));
+			SmiteVulnerabilityState state = new SmiteVulnerabilityState(vulnerability);
+			SMITE_VULNERABILITY_BY_ENTITY.put(livingTarget.getUUID(), state);
+			persistSmiteVulnerability(livingTarget, state);
 		} else {
-			SMITE_VULNERABILITY_BY_ENTITY.remove(livingTarget.getUUID());
+			clearSmiteVulnerability(livingTarget);
 		}
 		return true;
 	}
@@ -629,14 +632,75 @@ public final class EnchantBooksAPIManager {
 	public static float applyConfiguredSmiteVulnerability(LivingEntity entity, DamageSource source, float amount) {
 		if (entity == null || amount <= 0.0F) return amount;
 
-		SmiteVulnerabilityState state = SMITE_VULNERABILITY_BY_ENTITY.get(entity.getUUID());
+		SmiteVulnerabilityState state = resolveSmiteVulnerability(entity);
 		if (state == null) return amount;
 		if (!entity.hasEffect(MobEffects.GLOWING)) {
-			SMITE_VULNERABILITY_BY_ENTITY.remove(entity.getUUID(), state);
+			clearSmiteVulnerability(entity);
 			return amount;
 		}
 
 		return amount * (1.0F + state.vulnerability);
+	}
+
+	/** Returns the active configured Smite vulnerability percentage for an entity. */
+	public static float getConfiguredSmiteVulnerabilityPercent(LivingEntity entity) {
+		if (entity == null) return 0.0F;
+
+		SmiteVulnerabilityState state = resolveSmiteVulnerability(entity);
+		if (state == null) return 0.0F;
+		if (!entity.hasEffect(MobEffects.GLOWING)) {
+			clearSmiteVulnerability(entity);
+			return 0.0F;
+		}
+
+		return Math.max(0.0F, state.vulnerability * 100.0F);
+	}
+
+	private static SmiteVulnerabilityState resolveSmiteVulnerability(LivingEntity entity) {
+		SmiteVulnerabilityState state = SMITE_VULNERABILITY_BY_ENTITY.get(entity.getUUID());
+		if (state != null) {
+			return state;
+		}
+		Float vulnerability = readFloatTag(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
+		if (vulnerability == null) {
+			return null;
+		}
+		state = new SmiteVulnerabilityState(vulnerability);
+		SMITE_VULNERABILITY_BY_ENTITY.put(entity.getUUID(), state);
+		return state;
+	}
+
+	private static void persistSmiteVulnerability(LivingEntity entity, SmiteVulnerabilityState state) {
+		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
+		entity.addTag(SMITE_VULNERABILITY_VALUE_PREFIX + Float.toString(state.vulnerability));
+	}
+
+	private static void clearSmiteVulnerability(LivingEntity entity) {
+		SMITE_VULNERABILITY_BY_ENTITY.remove(entity.getUUID());
+		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
+	}
+
+	private static Float readFloatTag(LivingEntity entity, String prefix) {
+		for (String tag : entity.entityTags()) {
+			if (!tag.startsWith(prefix)) {
+				continue;
+			}
+			try {
+				float value = Float.parseFloat(tag.substring(prefix.length()));
+				return Float.isFinite(value) && value >= 0.0F ? value : null;
+			} catch (NumberFormatException ignored) {
+				return null;
+			}
+		}
+		return null;
+	}
+
+	private static void removeTagsWithPrefix(LivingEntity entity, String prefix) {
+		for (String tag : new ArrayList<>(entity.entityTags())) {
+			if (tag.startsWith(prefix)) {
+				entity.removeTag(tag);
+			}
+		}
 	}
 
 	/** Replaces vanilla Infinity's unconditional arrow exemption with a configured chance. */
