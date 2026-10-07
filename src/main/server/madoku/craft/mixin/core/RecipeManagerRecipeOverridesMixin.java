@@ -1,15 +1,16 @@
 package madoku.craft.mixin.core;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Multimap;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.HolderOwner;
+import net.minecraft.core.HolderSet;
 import net.minecraft.world.flag.FeatureFlagSet;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeMap;
-import net.minecraft.world.item.crafting.RecipeType;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
@@ -20,8 +21,11 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import madoku.craft.java.core.recipes.RecipesAPIManager;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 @Mixin(RecipeManager.class)
 public abstract class RecipeManagerRecipeOverridesMixin {
@@ -56,22 +60,52 @@ public abstract class RecipeManagerRecipeOverridesMixin {
 
 	@Unique
 	private static RecipeMap madokuCraft$createRecipeMap(List<RecipeHolder<?>> resolvedRecipes) {
-		ImmutableMultimap.Builder<RecipeType<?>, RecipeHolder<?>> byType = ImmutableMultimap.builder();
-		ImmutableMap.Builder<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey = ImmutableMap.builder();
+		return RecipeMap.create(madokuCraft$createRecipeLookup(resolvedRecipes));
+	}
+
+	@Unique
+	private static HolderLookup<Recipe<?>> madokuCraft$createRecipeLookup(List<RecipeHolder<?>> resolvedRecipes) {
+		Map<ResourceKey<Recipe<?>>, Holder.Reference<Recipe<?>>> references = new LinkedHashMap<>();
 		for (RecipeHolder<?> holder : resolvedRecipes) {
 			if (holder == null || holder.id() == null || holder.value() == null) {
 				continue;
 			}
-			byType.put(holder.value().getType(), holder);
-			byKey.put(holder.id(), holder);
+			if (references.put(holder.id(), new MadokuRecipeReference(holder.id(), holder.value())) != null) {
+				throw new IllegalStateException("Duplicate recipe key while rebuilding the 26.3 recipe map: " + holder.id());
+			}
 		}
 
-		try {
-			var constructor = RecipeMap.class.getDeclaredConstructor(Multimap.class, Map.class);
-			constructor.setAccessible(true);
-			return constructor.newInstance(byType.build(), byKey.build());
-		} catch (ReflectiveOperationException exception) {
-			throw new IllegalStateException("Unable to rebuild the 26.3 recipe map.", exception);
+		return new HolderLookup<>() {
+			@Override
+			public Stream<Holder.Reference<Recipe<?>>> listElements() {
+				return references.values().stream();
+			}
+
+			@Override
+			public Stream<HolderSet.Named<Recipe<?>>> listTags() {
+				return Stream.empty();
+			}
+
+			@Override
+			public Optional<Holder.Reference<Recipe<?>>> get(ResourceKey<Recipe<?>> key) {
+				return Optional.ofNullable(references.get(key));
+			}
+
+			@Override
+			public Optional<HolderSet.Named<Recipe<?>>> get(TagKey<Recipe<?>> key) {
+				return Optional.empty();
+			}
+		};
+	}
+
+	@Unique
+	private static final HolderOwner<Recipe<?>> MADOKU_RECIPE_OWNER = new HolderOwner<>() {
+	};
+
+	@Unique
+	private static final class MadokuRecipeReference extends Holder.Reference<Recipe<?>> {
+		private MadokuRecipeReference(ResourceKey<Recipe<?>> key, Recipe<?> value) {
+			super(Holder.Reference.Type.STAND_ALONE, MADOKU_RECIPE_OWNER, key, value);
 		}
 	}
 }

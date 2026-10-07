@@ -55,12 +55,36 @@ public final class EquipmentsConfigAPIManager {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		String[] mobs = {
 			"skeleton", "stray", "bogged", "parched", "wither-skeleton",
-			"zombie", "husk", "drowned", "zombie-villager"
+			"zombie", "husk", "drowned", "zombie-villager", "piglin"
 		};
 		for (String mob : mobs) {
-			defaults.put("minecraft-equipment-" + mob, buildDefaultProfile("minecraft:" + mob));
+			String fileKey = "minecraft-equipment-" + mob;
+			defaults.put(fileKey, "piglin".equals(mob)
+				? buildDefaultPiglinProfile()
+				: buildDefaultProfile("minecraft:" + mob));
 		}
 		return defaults;
+	}
+
+	private static JsonObject buildDefaultPiglinProfile() {
+		return JSONFormatAPIManager.object()
+			.put(FIELD_ENABLED, true)
+			.put(FIELD_MOB_ID, "minecraft:piglin")
+			.object(FIELD_EQUIPMENTS, equipments -> equipments
+				.put(FIELD_HEAD, buildDefaultPiglinArmorEntries("helmet"))
+				.put(FIELD_CHEST, buildDefaultPiglinArmorEntries("chestplate"))
+				.put(FIELD_LEGS, buildDefaultPiglinArmorEntries("leggings"))
+				.put(FIELD_FEET, buildDefaultPiglinArmorEntries("boots"))
+				.put(FIELD_MAIN_HAND, buildEmptySlotEntries())
+				.put(FIELD_OFF_HAND, buildEmptySlotEntries()))
+			.build();
+	}
+
+	private static JsonArray buildDefaultPiglinArmorEntries(String piece) {
+		return JSONFormatAPIManager.array()
+			.add(defaultItem("minecraft:golden-" + piece, 10.0D))
+			.add(defaultItem("empty", 1900.0D))
+			.build();
 	}
 
 	private static JsonObject buildDefaultProfile(String mobId) {
@@ -194,6 +218,7 @@ public final class EquipmentsConfigAPIManager {
 	}
 
 	private static String defaultFileKeyForType(EntityType<?> type) {
+		if (isEntityType(type, "minecraft:piglin")) return "minecraft-equipment-piglin";
 		if (isEntityType(type, "minecraft:skeleton")) return "minecraft-equipment-skeleton";
 		if (isEntityType(type, "minecraft:stray")) return "minecraft-equipment-stray";
 		if (isEntityType(type, "minecraft:bogged")) return "minecraft-equipment-bogged";

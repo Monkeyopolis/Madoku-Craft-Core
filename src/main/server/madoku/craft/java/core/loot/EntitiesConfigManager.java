@@ -52,6 +52,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:rotten_flesh", 85, 1, 3), drop("minecraft:charcoal", 15, 2, 4)));
 		put(defaults, "minecraft:entities/pig", buildMobTable("minecraft:entities/pig", 1, 2,
 			drop("minecraft:porkchop", 149, 2, 4), drop("madoku-craft:pig-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/piglin", buildMobTable("minecraft:entities/piglin", 1, 2,
+			drop("minecraft:gold_nugget", 1, 1, 3)));
 		put(defaults, "minecraft:entities/skeleton", buildMobTable("minecraft:entities/skeleton", 1, 2,
 			drop("minecraft:bone", 89, 1, 3), drop("minecraft:arrow", 60, 1, 2), drop("madoku-craft:skeleton-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/sheep", buildMobTable("minecraft:entities/sheep", 1, 2,

@@ -25,6 +25,8 @@ public interface LootFeatureAdapter {
 	default String resolveBeeMobDropsConfigReference(LivingEntity entity) { return ""; }
 	default boolean isZombieCustomMobDropsEnabled(LivingEntity entity) { return false; }
 	default String resolveZombieMobDropsConfigReference(LivingEntity entity) { return ""; }
+	default boolean isPiglinCustomMobDropsEnabled(LivingEntity entity) { return false; }
+	default String resolvePiglinMobDropsConfigReference(LivingEntity entity) { return ""; }
 
 	default void applyGeneratedItemLevel(ItemStack stack, RandomSource random) { }
 	default boolean isRarityCategoryItem(ItemStack stack) { return false; }

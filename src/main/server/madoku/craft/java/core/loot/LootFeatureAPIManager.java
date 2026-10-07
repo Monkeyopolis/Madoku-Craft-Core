@@ -126,6 +126,21 @@ public final class LootFeatureAPIManager {
 		return "";
 	}
 
+	public static boolean isPiglinCustomMobDropsEnabled(LivingEntity entity) {
+		for (LootFeatureAdapter adapter : adapters) {
+			if (adapter.isPiglinCustomMobDropsEnabled(entity)) return true;
+		}
+		return false;
+	}
+
+	public static String resolvePiglinMobDropsConfigReference(LivingEntity entity) {
+		for (LootFeatureAdapter adapter : adapters) {
+			String reference = adapter.resolvePiglinMobDropsConfigReference(entity);
+			if (reference != null && !reference.isBlank()) return reference;
+		}
+		return "";
+	}
+
 	public static void applyGeneratedItemLevel(ItemStack stack, RandomSource random) {
 		for (LootFeatureAdapter adapter : adapters) {
 			adapter.applyGeneratedItemLevel(stack, random);

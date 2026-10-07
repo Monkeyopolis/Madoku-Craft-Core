@@ -134,6 +134,15 @@ public final class LootTableEntitiesAPIManager {
 				managed = resolveManagedTableByConfigReference(zombieConfiguredReference);
 			}
 		}
+		if (managed == null && thisEntity != null
+			&& LootFeatureAPIManager.isMobEnabled()
+			&& isEntityType(thisEntity.getType(), "minecraft:piglin")) {
+			if (!LootFeatureAPIManager.isPiglinCustomMobDropsEnabled(thisEntity)) {
+				return null;
+			}
+			String configuredReference = LootFeatureAPIManager.resolvePiglinMobDropsConfigReference(thisEntity);
+			managed = resolveManagedTableByConfigReference(configuredReference);
+		}
 		if (managed == null) {
 			managed = resolveManagedTableByLootId(tableId);
 		}
