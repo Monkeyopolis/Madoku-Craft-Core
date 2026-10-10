@@ -80,6 +80,7 @@ public final class EnchantBooksAPIManager {
 	private static final ThreadLocal<Float> INCOMING_DAMAGE_CONTEXT = new ThreadLocal<>();
 	private static final Map<UUID, SmiteVulnerabilityState> SMITE_VULNERABILITY_BY_ENTITY = new ConcurrentHashMap<>();
 	private static final String SMITE_VULNERABILITY_VALUE_PREFIX = "madoku-craft.smite-vulnerability-value:";
+	private static final String SMITE_VULNERABILITY_EXPIRES_PREFIX = "madoku-craft.smite-vulnerability-expires:";
 	private static final String UNBREAKING_BASE_MAX_DAMAGE_KEY = "madoku_craft_unbreaking_base_max_damage";
 	private static final String UNBREAKING_BASE_DAMAGE_KEY = "madoku_craft_unbreaking_base_damage";
 	private static final String UNBREAKING_APPLIED_MAX_DAMAGE_KEY = "madoku_craft_unbreaking_applied_max_damage";
@@ -102,12 +103,19 @@ public final class EnchantBooksAPIManager {
 	static void onServerTick(MinecraftServer server) {
 		if (server == null || SMITE_VULNERABILITY_BY_ENTITY.isEmpty()) return;
 
-		SMITE_VULNERABILITY_BY_ENTITY.keySet().removeIf(uuid -> {
+		SMITE_VULNERABILITY_BY_ENTITY.entrySet().removeIf(entry -> {
+			SmiteVulnerabilityState state = entry.getValue();
+			if (state == null) return true;
 			for (ServerLevel level : server.getAllLevels()) {
-				Entity entity = level.getEntity(uuid);
-				if (entity instanceof LivingEntity livingEntity && livingEntity.hasEffect(MobEffects.GLOWING)) return false;
+				Entity entity = level.getEntity(entry.getKey());
+				if (!(entity instanceof LivingEntity livingEntity)) continue;
+				if (level.getGameTime() >= state.expiresAtGameTime || !livingEntity.hasEffect(MobEffects.GLOWING)) {
+					clearSmiteVulnerability(livingEntity);
+					return true;
+				}
+				return false;
 			}
-			return true;
+			return false;
 		});
 	}
 
@@ -619,7 +627,8 @@ public final class EnchantBooksAPIManager {
 		}
 		float vulnerability = (float) Math.max(0.0D, vulnerabilityPercent / 100.0D);
 		if (vulnerability > 0.0F && glowDurationTicks > 0) {
-			SmiteVulnerabilityState state = new SmiteVulnerabilityState(vulnerability);
+			long expiresAtGameTime = safeAddSmiteTicks(livingTarget.level().getGameTime(), glowDurationTicks);
+			SmiteVulnerabilityState state = new SmiteVulnerabilityState(vulnerability, expiresAtGameTime);
 			SMITE_VULNERABILITY_BY_ENTITY.put(livingTarget.getUUID(), state);
 			persistSmiteVulnerability(livingTarget, state);
 		} else {
@@ -634,7 +643,7 @@ public final class EnchantBooksAPIManager {
 
 		SmiteVulnerabilityState state = resolveSmiteVulnerability(entity);
 		if (state == null) return amount;
-		if (!entity.hasEffect(MobEffects.GLOWING)) {
+		if (!isSmiteVulnerabilityActive(entity, state)) {
 			clearSmiteVulnerability(entity);
 			return amount;
 		}
@@ -648,7 +657,7 @@ public final class EnchantBooksAPIManager {
 
 		SmiteVulnerabilityState state = resolveSmiteVulnerability(entity);
 		if (state == null) return 0.0F;
-		if (!entity.hasEffect(MobEffects.GLOWING)) {
+		if (!isSmiteVulnerabilityActive(entity, state)) {
 			clearSmiteVulnerability(entity);
 			return 0.0F;
 		}
@@ -662,22 +671,40 @@ public final class EnchantBooksAPIManager {
 			return state;
 		}
 		Float vulnerability = readFloatTag(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
-		if (vulnerability == null) {
+		Long expiresAtGameTime = readLongTag(entity, SMITE_VULNERABILITY_EXPIRES_PREFIX);
+		if (vulnerability == null || expiresAtGameTime == null) {
+			if (vulnerability != null) clearSmiteVulnerability(entity);
 			return null;
 		}
-		state = new SmiteVulnerabilityState(vulnerability);
+		state = new SmiteVulnerabilityState(vulnerability, expiresAtGameTime);
 		SMITE_VULNERABILITY_BY_ENTITY.put(entity.getUUID(), state);
 		return state;
 	}
 
 	private static void persistSmiteVulnerability(LivingEntity entity, SmiteVulnerabilityState state) {
 		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
+		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_EXPIRES_PREFIX);
 		entity.addTag(SMITE_VULNERABILITY_VALUE_PREFIX + Float.toString(state.vulnerability));
+		entity.addTag(SMITE_VULNERABILITY_EXPIRES_PREFIX + Long.toString(state.expiresAtGameTime));
 	}
 
 	private static void clearSmiteVulnerability(LivingEntity entity) {
 		SMITE_VULNERABILITY_BY_ENTITY.remove(entity.getUUID());
 		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_VALUE_PREFIX);
+		removeTagsWithPrefix(entity, SMITE_VULNERABILITY_EXPIRES_PREFIX);
+	}
+
+	private static boolean isSmiteVulnerabilityActive(LivingEntity entity, SmiteVulnerabilityState state) {
+		return entity != null
+			&& state != null
+			&& entity.level().getGameTime() < state.expiresAtGameTime
+			&& entity.hasEffect(MobEffects.GLOWING);
+	}
+
+	private static long safeAddSmiteTicks(long current, long duration) {
+		if (duration <= 0L) return Math.max(0L, current);
+		if (current > Long.MAX_VALUE - duration) return Long.MAX_VALUE;
+		return current + duration;
 	}
 
 	private static Float readFloatTag(LivingEntity entity, String prefix) {
@@ -688,6 +715,21 @@ public final class EnchantBooksAPIManager {
 			try {
 				float value = Float.parseFloat(tag.substring(prefix.length()));
 				return Float.isFinite(value) && value >= 0.0F ? value : null;
+			} catch (NumberFormatException ignored) {
+				return null;
+			}
+		}
+		return null;
+	}
+
+	private static Long readLongTag(LivingEntity entity, String prefix) {
+		for (String tag : entity.entityTags()) {
+			if (!tag.startsWith(prefix)) {
+				continue;
+			}
+			try {
+				long value = Long.parseLong(tag.substring(prefix.length()));
+				return value >= 0L ? value : null;
 			} catch (NumberFormatException ignored) {
 				return null;
 			}
@@ -1429,7 +1471,7 @@ public final class EnchantBooksAPIManager {
 		return null;
 	}
 
-	private record SmiteVulnerabilityState(float vulnerability) { }
+	private record SmiteVulnerabilityState(float vulnerability, long expiresAtGameTime) { }
 
 	private static int resolveLevel(ItemStack stack, String enchantmentId) {
 		if (stack == null || stack.isEmpty()) return 0;

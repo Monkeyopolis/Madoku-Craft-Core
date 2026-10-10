@@ -49,11 +49,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 
 public final class RecipesAPIManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(RecipesAPIManager.class);
 	private static final String MADOKU_RECIPE_NAMESPACE = "madoku-craft";
+	private static final Map<ServerPlayer, Integer> LAST_INVENTORY_SCAN_TICKS = new WeakHashMap<>();
 	private static volatile boolean initialized;
+	private static volatile Boolean cachedSystemEnabled;
 	private static volatile Boolean clientSynchronizedSystemEnabled;
 	private static volatile Map<String, JsonObject> clientSynchronizedFiles;
 
@@ -80,6 +83,10 @@ public final class RecipesAPIManager {
 		RecipesBlockManager.reset();
 		RecipesFormatManager.reset();
 		RecipesConfigManager.reset();
+		cachedSystemEnabled = null;
+		synchronized (LAST_INVENTORY_SCAN_TICKS) {
+			LAST_INVENTORY_SCAN_TICKS.clear();
+		}
 		resetClientSyncState();
 		initialized = false;
 	}
@@ -87,7 +94,14 @@ public final class RecipesAPIManager {
 	public static boolean isInitialized() { return initialized; }
 
 	public static void onPlayerInventoryChanged(ServerPlayer player) {
-		if (player == null || !loadSystemEnabled()) {
+		if (player == null) {
+			return;
+		}
+		if (!shouldScanInventory(player)) {
+			return;
+		}
+		Boolean systemEnabled = loadSystemEnabled();
+		if (!Boolean.TRUE.equals(systemEnabled)) {
 			return;
 		}
 
@@ -98,6 +112,13 @@ public final class RecipesAPIManager {
 			.toList();
 		if (!unlockable.isEmpty()) {
 			player.awardRecipes(unlockable);
+		}
+	}
+
+	private static boolean shouldScanInventory(ServerPlayer player) {
+		synchronized (LAST_INVENTORY_SCAN_TICKS) {
+			Integer lastScanTick = LAST_INVENTORY_SCAN_TICKS.put(player, player.tickCount);
+			return lastScanTick == null || lastScanTick != player.tickCount;
 		}
 	}
 
@@ -180,6 +201,7 @@ public final class RecipesAPIManager {
 			return source;
 		}
 
+		refreshSystemEnabled();
 		boolean systemEnabled = loadSystemEnabled();
 		if (!systemEnabled) {
 			return source;
@@ -945,6 +967,7 @@ public final class RecipesAPIManager {
 	public static void resetClientSyncState() {
 		clientSynchronizedSystemEnabled = null;
 		clientSynchronizedFiles = null;
+		cachedSystemEnabled = null;
 	}
 
 	private static Map<String, JsonObject> collectRecipeConfigFiles() {
@@ -1010,17 +1033,33 @@ public final class RecipesAPIManager {
 	private static boolean loadSystemEnabled() {
 		Boolean synchronizedEnabled = clientSynchronizedSystemEnabled;
 		if (synchronizedEnabled != null) return synchronizedEnabled;
-		try {
-			Path rootDirectory = RecipesConfigManager.getRootDirectory();
-			Path settingsFile = resolveJsonFile(rootDirectory, RecipesConfigManager.SETTINGS_FILE_NAME);
-			JsonObject settingsRoot = JSONFormatAPIManager.ensureManagedFile(
-				settingsFile,
-				RecipesConfigManager.buildRecipeSystemDefaults()
-			);
-			return readBoolean(settingsRoot, RecipesConfigManager.FIELD_ENABLED, true);
-		} catch (IOException | RuntimeException exception) {
-			LOGGER.error("Failed to load MadokuRecipes settings; disabling recipe overrides.", exception);
-			return false;
+		Boolean cachedEnabled = cachedSystemEnabled;
+		if (cachedEnabled != null) return cachedEnabled;
+
+		synchronized (RecipesAPIManager.class) {
+			cachedEnabled = cachedSystemEnabled;
+			if (cachedEnabled != null) return cachedEnabled;
+			try {
+				Path rootDirectory = RecipesConfigManager.getRootDirectory();
+				Path settingsFile = resolveJsonFile(rootDirectory, RecipesConfigManager.SETTINGS_FILE_NAME);
+				JsonObject settingsRoot = JSONFormatAPIManager.ensureManagedFile(
+					settingsFile,
+					RecipesConfigManager.buildRecipeSystemDefaults()
+				);
+				boolean enabled = readBoolean(settingsRoot, RecipesConfigManager.FIELD_ENABLED, true);
+				cachedSystemEnabled = enabled;
+				return enabled;
+			} catch (IOException | RuntimeException exception) {
+				LOGGER.error("Failed to load MadokuRecipes settings; disabling recipe overrides.", exception);
+				cachedSystemEnabled = false;
+				return false;
+			}
+		}
+	}
+
+	private static void refreshSystemEnabled() {
+		if (clientSynchronizedSystemEnabled == null) {
+			cachedSystemEnabled = null;
 		}
 	}
 

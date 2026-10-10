@@ -28,8 +28,8 @@ public abstract class InventoryMenuRarityMixin {
 			return;
 		}
 
-			RecipesItemAPIManager.applyConfiguredItemLevel(resultSlot.getItem(), 1);
-			List<ItemStack> extras = RecipesAPIManager.applyCraftedRarity(serverPlayer, resultSlot.getItem());
-			RecipesAPIManager.deliverCraftExtras(serverPlayer, extras);
+		RecipesItemAPIManager.applyConfiguredItemLevel(resultSlot.getItem(), 1);
+		List<ItemStack> extras = RecipesAPIManager.applyCraftedRarity(serverPlayer, resultSlot.getItem());
+		RecipesAPIManager.deliverCraftExtras(serverPlayer, extras);
 	}
 }
