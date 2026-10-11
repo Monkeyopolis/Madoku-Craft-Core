@@ -22,6 +22,7 @@
     "core.RecipeManagerRecipeOverridesMixin",
     "core.ResultSlotRarityMixin",
     "core.ServerClockManagerMixin",
+    "core.ServerLevelActiveChunkTickMixin",
     "core.ServerPlayerSleepTimeMixin",
     "core.TimelineMixin",
     "inventory.SlotAccessor",

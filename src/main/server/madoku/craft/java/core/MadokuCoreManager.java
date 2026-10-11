@@ -1,6 +1,8 @@
 package madoku.craft.java.core;
 
 import madoku.craft.java.core.chunk.ChunkAPIManager;
+import madoku.craft.java.core.chunk.ActiveChunkTickAPIManager;
+import madoku.craft.java.core.chunk.MadokuActiveChunkTickProvider;
 import madoku.craft.java.core.data.DataAPIManager;
 import madoku.craft.java.core.data.ChunkDataAPIManager;
 import madoku.craft.java.core.data.MadokuChunkDataProvider;
@@ -54,6 +56,8 @@ public final class MadokuCoreManager {
 		AdaptiveIntervalAPIManager.registerProvider(new MadokuAdaptiveIntervalProvider());
 		AdaptiveIntervalAPIManager.initialize();
 		ChunkAPIManager.initialize();
+		ActiveChunkTickAPIManager.registerProvider(new MadokuActiveChunkTickProvider());
+		ActiveChunkTickAPIManager.initialize();
 		ChunkDataAPIManager.registerProvider(new MadokuChunkDataProvider());
 		ChunkDataAPIManager.initialize();
 		SeasonAPIManager.initialize();
@@ -98,6 +102,7 @@ public final class MadokuCoreManager {
 		AdaptiveIntervalAPIManager.reset();
 		SeasonAPIManager.reset();
 		ChunkAPIManager.reset();
+		ActiveChunkTickAPIManager.reset();
 		ChunkDataAPIManager.reset();
 		SyncAPIManager.reset();
 		RecipesAPIManager.reset();

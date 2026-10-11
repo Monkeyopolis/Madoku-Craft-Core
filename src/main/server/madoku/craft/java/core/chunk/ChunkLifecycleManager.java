@@ -58,6 +58,9 @@ final class ChunkLifecycleManager {
 			return;
 		}
 		ChunkAPIManager.removeChunk(ChunkAPIManager.levelId(level), chunk.getPos().pack());
-		ChunkAPIManager.enqueueChunkUnloaded(level, chunk.getPos().x(), chunk.getPos().z());
+		// Unload listeners may persist data through the chunk attachment API. The
+		// chunk can be inaccessible by the time a queued server-tick callback runs,
+		// so unload notifications must happen while the event still owns the chunk.
+		ChunkAPIManager.notifyChunkUnloaded(level, chunk.getPos().x(), chunk.getPos().z());
 	}
 }
