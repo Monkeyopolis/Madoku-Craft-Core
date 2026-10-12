@@ -34,6 +34,8 @@ public final class EntitiesConfigManager {
 			drop("empty", 149, 0, 0), drop("madoku-craft:bee-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/goat", buildMobTable("minecraft:entities/goat", 1, 2,
 			drop("empty", 149, 0, 0), drop("madoku-craft:goat-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/enderman", buildMobTable("minecraft:entities/enderman", 1, 2,
+			drop("minecraft:ender_pearl", 1, 0, 2)));
 		put(defaults, "minecraft:entities/iron_golem", buildMobTable("minecraft:entities/iron_golem", 1, 2,
 			drop("minecraft:iron_ingot", 149, 3, 5), drop("minecraft:poppy", 60, 0, 2), drop("madoku-craft:iron-golem-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/bogged", buildMobTable("minecraft:entities/bogged", 1, 2,
