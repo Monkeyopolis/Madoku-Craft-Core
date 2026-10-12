@@ -34,6 +34,8 @@ public final class EntitiesConfigManager {
 			drop("empty", 149, 0, 0), drop("madoku-craft:bee-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/goat", buildMobTable("minecraft:entities/goat", 1, 2,
 			drop("empty", 149, 0, 0), drop("madoku-craft:goat-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/iron_golem", buildMobTable("minecraft:entities/iron_golem", 1, 2,
+			drop("minecraft:iron_ingot", 149, 3, 5), drop("minecraft:poppy", 60, 0, 2), drop("madoku-craft:iron-golem-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/bogged", buildMobTable("minecraft:entities/bogged", 1, 2,
 			drop("minecraft:bone", 60, 1, 3), drop("minecraft:arrow", 40, 1, 2)));
 		put(defaults, "minecraft:entities/parched", buildMobTable("minecraft:entities/parched", 1, 2,
@@ -46,6 +48,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:feather", 60, 1, 3), drop("minecraft:chicken", 89, 1, 2), drop("madoku-craft:chicken-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/cow", buildMobTable("minecraft:entities/cow", 1, 2,
 			drop("minecraft:leather", 60, 1, 3), drop("minecraft:beef", 89, 1, 2), drop("madoku-craft:cow-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/ocelot", buildMobTable("minecraft:entities/ocelot", 1, 2,
+			drop("empty", 149, 0, 0), drop("madoku-craft:ocelot-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/drowned", buildMobTable("minecraft:entities/drowned", 1, 2,
 			drop("minecraft:rotten_flesh", 90, 1, 3), drop("minecraft:copper_ingot", 10, 1, 3)));
 		put(defaults, "minecraft:entities/husk", buildMobTable("minecraft:entities/husk", 1, 2,
