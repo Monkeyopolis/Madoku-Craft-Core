@@ -19,6 +19,8 @@ public final class TimeConfigManager {
 	private static final String TIME_CONFIG_FOLDER_NAME = "madoku-craft-core/madoku-time";
 	private static final String TIME_CONFIG_FILE_NAME = "madoku-time";
 	private static final long TICKS_PER_MINUTE = TimeAPIManager.TICKS_PER_SECOND * TimeAPIManager.SECONDS_PER_MINUTE;
+	private static final double SEASONAL_TIME_MULTIPLIER_STEP = 0.01D;
+	private static final double SEASONAL_TRANSITION_PROGRESS_STEP = 0.01D;
 
 	private static final String FIELD_DAY_CYCLE = "day-cycle";
 	private static final String FIELD_SEASONAL_CHANGES = "seasonal-changes";
@@ -263,19 +265,38 @@ public final class TimeConfigManager {
 	private static TimeAdjustmentSettings resolveEffectiveSeasonAdjustment(String seasonId) {
 		TimeAdjustmentSettings current = resolveSeasonAdjustment(seasonId);
 		if (!isSeasonalChangesActive()) {
-			return current;
+			return quantizeTimeAdjustment(current);
 		}
 
 		SeasonAPIManager.SeasonState state = SeasonAPIManager.getCurrentState();
 		if (state == null || !normalizeSeasonId(state.season().id()).equals(normalizeSeasonId(seasonId))) {
-			return current;
+			return quantizeTimeAdjustment(current);
 		}
 
 		TimeAdjustmentSettings next = resolveSeasonAdjustment(nextSeason(state.season()).id());
 		double progress = resolveSeasonBoundaryProgress(state);
 		return new TimeAdjustmentSettings(
-			interpolateSeasonValue(current.day(), next.day(), progress),
-			interpolateSeasonValue(current.night(), next.night(), progress));
+			quantizeTimeMultiplier(interpolateSeasonValue(current.day(), next.day(), progress)),
+			quantizeTimeMultiplier(interpolateSeasonValue(current.night(), next.night(), progress)));
+	}
+
+	private static TimeAdjustmentSettings quantizeTimeAdjustment(TimeAdjustmentSettings adjustment) {
+		if (adjustment == null) {
+			return TimeAdjustmentSettings.defaults(1.0D, 1.0D);
+		}
+		return new TimeAdjustmentSettings(
+			quantizeTimeMultiplier(adjustment.day()),
+			quantizeTimeMultiplier(adjustment.night()));
+	}
+
+	private static double quantizeTimeMultiplier(double multiplier) {
+		if (!Double.isFinite(multiplier) || multiplier <= 0.0D) {
+			return 1.0D;
+		}
+		return Math.max(
+			SEASONAL_TIME_MULTIPLIER_STEP,
+			Math.round(multiplier / SEASONAL_TIME_MULTIPLIER_STEP) * SEASONAL_TIME_MULTIPLIER_STEP
+		);
 	}
 
 	private static TimeAdjustmentSettings resolveConfiguredSeasonAdjustment(
@@ -294,7 +315,17 @@ public final class TimeConfigManager {
 	private static double resolveSeasonBoundaryProgress(SeasonAPIManager.SeasonState state) {
 		int seasonLengthDays = Math.max(1, SeasonConfigManager.getSettings().seasonLengthDays());
 		double progress = state.seasonDay() / (double) Math.max(1, seasonLengthDays - 1);
-		return Math.max(0.0D, Math.min(1.0D, progress));
+		return quantizeTransitionProgress(progress);
+	}
+
+	private static double quantizeTransitionProgress(double progress) {
+		if (!Double.isFinite(progress)) {
+			return 0.0D;
+		}
+		double clamped = Math.max(0.0D, Math.min(1.0D, progress));
+		double quantized = Math.round(clamped / SEASONAL_TRANSITION_PROGRESS_STEP)
+			* SEASONAL_TRANSITION_PROGRESS_STEP;
+		return Math.max(0.0D, Math.min(1.0D, quantized));
 	}
 
 	private static double interpolateSeasonValue(double start, double end, double progress) {

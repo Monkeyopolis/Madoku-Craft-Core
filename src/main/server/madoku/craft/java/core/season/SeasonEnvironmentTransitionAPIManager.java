@@ -18,6 +18,9 @@ public final class SeasonEnvironmentTransitionAPIManager {
 	private static final double SHELTER_NEUTRAL_TEMPERATURE = 50.0D;
 	private static final double SHELTER_PER_BLOCK_EFFECT = 0.10D;
 	private static final double SHELTER_HUMIDITY_PER_BLOCK_REDUCTION = 0.05D;
+	private static final double SEASONAL_CLIMATE_STEP = 0.1D;
+	private static final double DAILY_TEMPERATURE_MODIFIER_STEP = 0.01D;
+	private static final double SEASONAL_TRANSITION_PROGRESS_STEP = 0.01D;
 	private static final int SHELTER_VERTICAL_SCAN_DEPTH = 16;
 	private static final int SHELTER_HORIZONTAL_SCAN_DEPTH = 5;
 	private static final int SHELTER_MAX_VERTICAL_BLOCKS = 5;
@@ -84,21 +87,21 @@ public final class SeasonEnvironmentTransitionAPIManager {
 		double previousTemperatureOffset = temperatureOffset;
 		double previousHumidityOffset = humidityOffset;
 		temperatureOffset = settings.temperatureEnabled() && settings.seasonTransitionsEnabled()
-			? resolveSmoothSeasonalOffset(
+			? quantizeClimateOffset(resolveSmoothSeasonalOffset(
 				settings.temperatureAdjustments(),
 				state,
 				count,
 				settings.adjustmentCount(),
 				timeRateDays,
-				seasonLengthDays) : 0.0;
+				seasonLengthDays)) : 0.0;
 		humidityOffset = settings.humidityEnabled() && settings.seasonTransitionsEnabled()
-			? resolveSmoothSeasonalOffset(
+			? quantizeClimateOffset(resolveSmoothSeasonalOffset(
 				settings.humidityAdjustments(),
 				state,
 				count,
 				settings.adjustmentCount(),
 				timeRateDays,
-				seasonLengthDays) : 0.0;
+				seasonLengthDays)) : 0.0;
 		if (Double.compare(previousTemperatureOffset, temperatureOffset) != 0
 			|| Double.compare(previousHumidityOffset, humidityOffset) != 0) {
 		}
@@ -315,18 +318,35 @@ public final class SeasonEnvironmentTransitionAPIManager {
 			int startMinute = DAILY_TEMPERATURE_MINUTES[index];
 			int endMinute = DAILY_TEMPERATURE_MINUTES[index + 1];
 			if (minutes <= endMinute) {
-				return interpolateModifier(
+				return quantizeDailyTemperatureModifier(interpolateModifier(
 					DAILY_TEMPERATURE_MODIFIERS[index],
 					DAILY_TEMPERATURE_MODIFIERS[index + 1],
-					(minutes - startMinute) / (double) (endMinute - startMinute));
+					(minutes - startMinute) / (double) (endMinute - startMinute)));
 			}
 		}
 
 		int startMinute = DAILY_TEMPERATURE_MINUTES[DAILY_TEMPERATURE_MINUTES.length - 1];
-		return interpolateModifier(
+		return quantizeDailyTemperatureModifier(interpolateModifier(
 			DAILY_TEMPERATURE_MODIFIERS[DAILY_TEMPERATURE_MODIFIERS.length - 1],
 			DAILY_TEMPERATURE_MODIFIERS[0],
-			(minutes - startMinute) / (double) (MINUTES_PER_DAY - startMinute));
+			(minutes - startMinute) / (double) (MINUTES_PER_DAY - startMinute)));
+	}
+
+	private static double quantizeClimateOffset(double offset) {
+		if (!Double.isFinite(offset)) {
+			return 0.0D;
+		}
+		double quantized = Math.round(offset / SEASONAL_CLIMATE_STEP) * SEASONAL_CLIMATE_STEP;
+		return quantized == 0.0D ? 0.0D : quantized;
+	}
+
+	private static double quantizeDailyTemperatureModifier(double modifier) {
+		if (!Double.isFinite(modifier)) {
+			return 0.0D;
+		}
+		double quantized = Math.round(modifier / DAILY_TEMPERATURE_MODIFIER_STEP)
+			* DAILY_TEMPERATURE_MODIFIER_STEP;
+		return quantized == 0.0D ? 0.0D : quantized;
 	}
 
 	public static double resolveSeasonalTransitionProgress(int seasonDay, int seasonLengthDays) {
@@ -343,9 +363,10 @@ public final class SeasonEnvironmentTransitionAPIManager {
 		int stageEndDay = stage == availableStages - 1
 			? safeLength - 1
 			: Math.min(stageStartDay + timeRateDays - 1, safeLength - 1);
-		double progress = (safeDay - stageStartDay) / (double) Math.max(1, stageEndDay - stageStartDay);
+		double progress = quantizeTransitionProgress(
+			(safeDay - stageStartDay) / (double) Math.max(1, stageEndDay - stageStartDay));
 		double smoothed = interpolateModifier(0.0D, 1.0D, progress);
-		return Math.max(0.0D, Math.min(1.0D, (stage + smoothed) / (double) availableStages));
+		return quantizeTransitionProgress((stage + smoothed) / (double) availableStages);
 	}
 
 	private static double interpolateModifier(double start, double end, double progress) {
@@ -385,16 +406,27 @@ public final class SeasonEnvironmentTransitionAPIManager {
 		if (count >= availableStages && state.seasonDay() >= currentStageStartDay) {
 			SeasonAPIManager.Season nextSeason = nextSeason(state.season());
 			double next = resolveCumulativeOffset(adjustments, nextSeason, 1, adjustmentCount);
-			double progress = (state.seasonDay() - currentStageStartDay)
-				/ (double) Math.max(1, seasonLengthDays - currentStageStartDay - 1);
+			double progress = quantizeTransitionProgress((state.seasonDay() - currentStageStartDay)
+				/ (double) Math.max(1, seasonLengthDays - currentStageStartDay - 1));
 			return interpolateModifier(current, next, progress);
 		}
 
 		int nextCount = Math.min(count + 1, availableStages);
 		double next = resolveCumulativeOffset(adjustments, state.season(), nextCount, adjustmentCount);
 		int currentStageStart = Math.max(0, (count - 1) * timeRateDays);
-		double progress = (state.seasonDay() - currentStageStart) / (double) Math.max(1, timeRateDays - 1);
+		double progress = quantizeTransitionProgress(
+			(state.seasonDay() - currentStageStart) / (double) Math.max(1, timeRateDays - 1));
 		return interpolateModifier(current, next, progress);
+	}
+
+	private static double quantizeTransitionProgress(double progress) {
+		if (!Double.isFinite(progress)) {
+			return 0.0D;
+		}
+		double clamped = Math.max(0.0D, Math.min(1.0D, progress));
+		double quantized = Math.round(clamped / SEASONAL_TRANSITION_PROGRESS_STEP)
+			* SEASONAL_TRANSITION_PROGRESS_STEP;
+		return Math.max(0.0D, Math.min(1.0D, quantized));
 	}
 
 	private static SeasonAPIManager.Season nextSeason(SeasonAPIManager.Season season) {

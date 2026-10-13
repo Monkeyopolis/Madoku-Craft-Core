@@ -32,6 +32,7 @@ public final class SeasonWeatherAPIManager {
 	private static final double[] HUMIDITY_ADJUSTMENT_VALUES = {
 		0.75D, 0.75D, 0.50D, 0.25D, 0.0D, 0.0D, 0.25D, 0.50D, 0.75D, 0.75D
 	};
+	private static final double HUMIDITY_ADJUSTMENT_STEP = 0.01D;
 
 	private static volatile MinecraftServer currentServer;
 	private static volatile WeatherCondition currentCondition;
@@ -244,7 +245,10 @@ public final class SeasonWeatherAPIManager {
 	private static double interpolateHumidityAdjustment(double start, double end, double progress) {
 		double clampedProgress = Math.max(0.0D, Math.min(1.0D, progress));
 		double smoothProgress = clampedProgress * clampedProgress * (3.0D - 2.0D * clampedProgress);
-		return start + (end - start) * smoothProgress;
+		double adjustment = start + (end - start) * smoothProgress;
+		return Math.max(
+			0.0D,
+			Math.min(1.0D, Math.round(adjustment / HUMIDITY_ADJUSTMENT_STEP) * HUMIDITY_ADJUSTMENT_STEP));
 	}
 
 	private static double resolveAverageHumidity(MinecraftServer server) {

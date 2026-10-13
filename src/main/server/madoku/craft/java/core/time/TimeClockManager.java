@@ -15,6 +15,7 @@ public final class TimeClockManager {
 	private static final long CYCLE_MINUTES_PER_DAY = 24L;
 	private static final long MINUTES_PER_DAY = 24L * 60L;
 	private static final int MINECRAFT_CLOCK_ZERO_OFFSET_MINUTES = 6 * 60;
+	private static final double WORLD_CLOCK_RATE_STEP = 0.001D;
 	private static volatile long gameplayTicks = 0L;
 	private static volatile boolean hasObservedWorldTime = false;
 	private static volatile long lastObservedWorldDayTime = 0L;
@@ -86,7 +87,11 @@ public final class TimeClockManager {
 		if (!Double.isFinite(resolvedRate) || resolvedRate <= 0.0D) {
 			return 1.0F;
 		}
-		return (float) resolvedRate;
+		double quantizedRate = Math.max(
+			WORLD_CLOCK_RATE_STEP,
+			Math.round(resolvedRate / WORLD_CLOCK_RATE_STEP) * WORLD_CLOCK_RATE_STEP
+		);
+		return (float) quantizedRate;
 	}
 
 	public static long getElapsedGameplayTicks() {

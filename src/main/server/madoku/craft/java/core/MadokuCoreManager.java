@@ -123,6 +123,8 @@ public final class MadokuCoreManager {
 		TimeAPIManager.onServerStarted(server);
 		ChunkAPIManager.onServerStarted(server);
 		SeasonAPIManager.onServerStarted(server);
+		// reset() disables the transport; restore it before join-time config snapshots are sent.
+		SyncAPIManager.initialize();
 		SyncAPIManager.onServerStarted(server);
 		RecipesAPIManager.initialize();
 		LootTableAPIManager.initialize();
