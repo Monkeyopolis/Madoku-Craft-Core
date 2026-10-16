@@ -1,6 +1,6 @@
 package madoku.craft.java.core.data;
 
-import com.google.gson.JsonObject;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
@@ -19,12 +19,12 @@ public interface WorldChunkDataProvider {
 	default long getAutoSaveMinutes() { return 0L; }
 	default long getAutoSaveIntervalTicks() { return 0L; }
 	default String dimensionId(ServerLevel level) { return ""; }
-	default JsonObject getChunkData(ServerLevel level, int chunkX, int chunkZ) { return new JsonObject(); }
-	default void setChunkData(ServerLevel level, int chunkX, int chunkZ, JsonObject data) { }
-	default JsonObject getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) { return new JsonObject(); }
-	default void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, JsonObject data) { }
-	default JsonObject getChunkSystemData(WorldChunkDataKey key, String systemId) { return new JsonObject(); }
-	default void setChunkSystemData(WorldChunkDataKey key, String systemId, JsonObject data) { }
+	default CompoundTag getChunkData(ServerLevel level, int chunkX, int chunkZ) { return new CompoundTag(); }
+	default void setChunkData(ServerLevel level, int chunkX, int chunkZ, CompoundTag data) { }
+	default CompoundTag getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) { return new CompoundTag(); }
+	default void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, CompoundTag data) { }
+	default CompoundTag getChunkSystemData(WorldChunkDataKey key, String systemId) { return new CompoundTag(); }
+	default void setChunkSystemData(WorldChunkDataKey key, String systemId, CompoundTag data) { }
 	default void removeChunkSystemData(WorldChunkDataKey key, String systemId) { }
-	default Map<WorldChunkDataKey, JsonObject> getAllChunkSystemData(String systemId) { return Map.of(); }
+	default Map<WorldChunkDataKey, CompoundTag> getAllChunkSystemData(String systemId) { return Map.of(); }
 }

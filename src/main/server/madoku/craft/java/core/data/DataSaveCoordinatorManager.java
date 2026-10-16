@@ -30,6 +30,12 @@ public final class DataSaveCoordinatorManager implements DataSaveCoordinatorProv
 		if (server == null) return;
 		long interval = Math.max(1L, WorldChunkDataAPIManager.getAutoSaveIntervalTicks());
 		long bucket = Math.floorDiv(TimeAPIManager.getGameplayTicks(), interval);
+		if (lastAutosaveBucket == Long.MIN_VALUE) {
+			// Server startup already loaded persisted state. Let the normal interval elapse
+			// before forcing a full vanilla save while spawn chunks are still loading.
+			lastAutosaveBucket = bucket;
+			return;
+		}
 		if (bucket == lastAutosaveBucket) return;
 		lastAutosaveBucket = bucket;
 		captureAndSchedule(server, false, "autosave");

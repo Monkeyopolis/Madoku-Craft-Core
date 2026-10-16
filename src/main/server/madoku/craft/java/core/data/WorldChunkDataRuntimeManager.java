@@ -105,51 +105,51 @@ final class WorldChunkDataRuntimeManager {
 
 	public static void savePersistedData(MinecraftServer server) { }
 
-	public static JsonObject getChunkData(ServerLevel level, int chunkX, int chunkZ) {
+	public static CompoundTag getChunkData(ServerLevel level, int chunkX, int chunkZ) {
 		LevelChunk chunk = loadedChunk(level, chunkX, chunkZ);
 		CompoundTag root = attachment(chunk);
-		return root == null ? createChunkDefaults(chunkX, chunkZ) : MadokuSavedDataManager.toJson(root);
+		return root == null ? createChunkDefaults(chunkX, chunkZ) : root.copy();
 	}
 
-	public static void setChunkData(ServerLevel level, int chunkX, int chunkZ, JsonObject data) {
+	public static void setChunkData(ServerLevel level, int chunkX, int chunkZ, CompoundTag data) {
 		LevelChunk chunk = loadedChunk(level, chunkX, chunkZ);
 		if (chunk == null) return;
-		JsonObject safeData = data == null ? new JsonObject() : data.deepCopy();
-		safeData.addProperty(FIELD_CHUNK_X, chunkX);
-		safeData.addProperty(FIELD_CHUNK_Z, chunkZ);
-		setAttachment(chunk, MadokuSavedDataManager.toNbt(safeData));
+		CompoundTag safeData = data == null ? new CompoundTag() : data.copy();
+		safeData.putInt(FIELD_CHUNK_X, chunkX);
+		safeData.putInt(FIELD_CHUNK_Z, chunkZ);
+		setAttachment(chunk, safeData);
 	}
 
-	public static JsonObject getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) {
-		if (level == null) return new JsonObject();
+	public static CompoundTag getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) {
+		if (level == null) return new CompoundTag();
 		return getChunkSystemData(new ChunkDataKey(dimensionId(level), chunkX, chunkZ), systemId);
 	}
 
-	public static void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, JsonObject data) {
+	public static void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, CompoundTag data) {
 		if (level != null) setChunkSystemData(new ChunkDataKey(dimensionId(level), chunkX, chunkZ), systemId, data);
 	}
 
-	public static JsonObject getChunkSystemData(ChunkDataKey key, String systemId) {
+	public static CompoundTag getChunkSystemData(ChunkDataKey key, String systemId) {
 		ServerLevel level = levelFor(key);
 		LevelChunk chunk = level == null ? null : loadedChunk(level, key.chunkX, key.chunkZ);
 		String normalizedSystemId = normalizeSystemId(systemId);
-		if (chunk == null || normalizedSystemId.isBlank()) return new JsonObject();
+		if (chunk == null || normalizedSystemId.isBlank()) return new CompoundTag();
 		CompoundTag root = attachment(chunk);
 		CompoundTag systems = root == null ? null : root.getCompoundOrEmpty(FIELD_SYSTEMS);
 		Tag value = systems == null ? null : systems.get(normalizedSystemId);
-		return value instanceof CompoundTag compound ? MadokuSavedDataManager.toJson(compound) : new JsonObject();
+		return value instanceof CompoundTag compound ? compound.copy() : new CompoundTag();
 	}
 
-	public static void setChunkSystemData(ChunkDataKey key, String systemId, JsonObject data) {
+	public static void setChunkSystemData(ChunkDataKey key, String systemId, CompoundTag data) {
 		ServerLevel level = levelFor(key);
 		LevelChunk chunk = level == null ? null : loadedChunk(level, key.chunkX, key.chunkZ);
 		String normalizedSystemId = normalizeSystemId(systemId);
 		if (chunk == null || normalizedSystemId.isBlank()) return;
 		CompoundTag root = attachment(chunk);
-		if (root == null) root = MadokuSavedDataManager.toNbt(createChunkDefaults(key.chunkX, key.chunkZ));
+		if (root == null) root = createChunkDefaults(key.chunkX, key.chunkZ);
 		CompoundTag updated = root.copy();
 		CompoundTag systems = updated.getCompoundOrEmpty(FIELD_SYSTEMS).copy();
-		systems.put(normalizedSystemId, MadokuSavedDataManager.toNbt(data == null ? new JsonObject() : data));
+		systems.put(normalizedSystemId, data == null ? new CompoundTag() : data.copy());
 		updated.put(FIELD_SYSTEMS, systems);
 		setAttachment(chunk, updated);
 	}
@@ -171,12 +171,12 @@ final class WorldChunkDataRuntimeManager {
 	}
 
 	/** Returns data from currently loaded chunks; unloaded chunks are intentionally not force-loaded. */
-	public static Map<ChunkDataKey, JsonObject> getAllChunkSystemData(String systemId) {
+	public static Map<ChunkDataKey, CompoundTag> getAllChunkSystemData(String systemId) {
 		String normalizedSystemId = normalizeSystemId(systemId);
-		Map<ChunkDataKey, JsonObject> result = new LinkedHashMap<>();
+		Map<ChunkDataKey, CompoundTag> result = new LinkedHashMap<>();
 		if (normalizedSystemId.isBlank()) return result;
 		for (ChunkDataKey key : Set.copyOf(LOADED_CHUNKS)) {
-			JsonObject data = getChunkSystemData(key, normalizedSystemId);
+			CompoundTag data = getChunkSystemData(key, normalizedSystemId);
 			if (!data.isEmpty()) result.put(key, data);
 		}
 		return result;
@@ -223,9 +223,12 @@ final class WorldChunkDataRuntimeManager {
 		return systems != null && !systems.isEmpty();
 	}
 
-	private static JsonObject createChunkDefaults(int chunkX, int chunkZ) {
-		return JSONFormatAPIManager.object().put(FIELD_CHUNK_X, chunkX).put(FIELD_CHUNK_Z, chunkZ)
-			.put(FIELD_STATUS, FullChunkStatus.FULL.name().toLowerCase(java.util.Locale.ROOT)).build();
+	private static CompoundTag createChunkDefaults(int chunkX, int chunkZ) {
+		CompoundTag defaults = new CompoundTag();
+		defaults.putInt(FIELD_CHUNK_X, chunkX);
+		defaults.putInt(FIELD_CHUNK_Z, chunkZ);
+		defaults.putString(FIELD_STATUS, FullChunkStatus.FULL.name().toLowerCase(java.util.Locale.ROOT));
+		return defaults;
 	}
 
 	private static String normalizeSystemId(String systemId) { return systemId == null ? "" : systemId.trim().toLowerCase(java.util.Locale.ROOT); }

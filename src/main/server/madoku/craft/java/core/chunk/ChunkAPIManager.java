@@ -28,14 +28,6 @@ public final class ChunkAPIManager {
 	}
 
 	public interface ChunkLifecycleListener {
-		default String profilerName() {
-			String className = getClass().getName();
-			int packageSeparator = className.lastIndexOf('.');
-			String simpleName = packageSeparator >= 0 ? className.substring(packageSeparator + 1) : className;
-			int anonymousClassSeparator = simpleName.indexOf('$');
-			return anonymousClassSeparator > 0 ? simpleName.substring(0, anonymousClassSeparator) : simpleName;
-		}
-
 		void onChunkLoaded(ServerLevel level, int chunkX, int chunkZ);
 
 		void onChunkUnloaded(ServerLevel level, int chunkX, int chunkZ);
@@ -106,6 +98,9 @@ public final class ChunkAPIManager {
 
 	public static void onServerTick(MinecraftServer server) {
 		if (server == null) {
+			return;
+		}
+		if (PENDING_CHUNK_EVENTS.isEmpty()) {
 			return;
 		}
 

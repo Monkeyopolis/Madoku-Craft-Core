@@ -1,6 +1,6 @@
 package madoku.craft.java.core.data;
 
-import com.google.gson.JsonObject;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
@@ -29,12 +29,12 @@ public final class WorldChunkDataAPIManager {
 	public static long getAutoSaveMinutes() { return provider.getAutoSaveMinutes(); }
 	public static long getAutoSaveIntervalTicks() { return provider.getAutoSaveIntervalTicks(); }
 	public static String dimensionId(ServerLevel level) { return provider.dimensionId(level); }
-	public static JsonObject getChunkData(ServerLevel level, int chunkX, int chunkZ) { return provider.getChunkData(level, chunkX, chunkZ); }
-	public static void setChunkData(ServerLevel level, int chunkX, int chunkZ, JsonObject data) { provider.setChunkData(level, chunkX, chunkZ, data); }
-	public static JsonObject getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) { return provider.getChunkSystemData(level, chunkX, chunkZ, systemId); }
-	public static void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, JsonObject data) { provider.setChunkSystemData(level, chunkX, chunkZ, systemId, data); }
-	public static JsonObject getChunkSystemData(WorldChunkDataKey key, String systemId) { return provider.getChunkSystemData(key, systemId); }
-	public static void setChunkSystemData(WorldChunkDataKey key, String systemId, JsonObject data) { provider.setChunkSystemData(key, systemId, data); }
+	public static CompoundTag getChunkData(ServerLevel level, int chunkX, int chunkZ) { return provider.getChunkData(level, chunkX, chunkZ); }
+	public static void setChunkData(ServerLevel level, int chunkX, int chunkZ, CompoundTag data) { provider.setChunkData(level, chunkX, chunkZ, data); }
+	public static CompoundTag getChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId) { return provider.getChunkSystemData(level, chunkX, chunkZ, systemId); }
+	public static void setChunkSystemData(ServerLevel level, int chunkX, int chunkZ, String systemId, CompoundTag data) { provider.setChunkSystemData(level, chunkX, chunkZ, systemId, data); }
+	public static CompoundTag getChunkSystemData(WorldChunkDataKey key, String systemId) { return provider.getChunkSystemData(key, systemId); }
+	public static void setChunkSystemData(WorldChunkDataKey key, String systemId, CompoundTag data) { provider.setChunkSystemData(key, systemId, data); }
 	public static void removeChunkSystemData(WorldChunkDataKey key, String systemId) { provider.removeChunkSystemData(key, systemId); }
-	public static Map<WorldChunkDataKey, JsonObject> getAllChunkSystemData(String systemId) { return provider.getAllChunkSystemData(systemId); }
+	public static Map<WorldChunkDataKey, CompoundTag> getAllChunkSystemData(String systemId) { return provider.getAllChunkSystemData(systemId); }
 }

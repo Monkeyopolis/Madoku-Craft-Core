@@ -1,17 +1,15 @@
 package madoku.craft.java.core.data;
 
-import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import madoku.craft.java.core.chunk.ChunkAPIManager;
-import madoku.craft.java.core.json.JSONFormatAPIManager;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -89,7 +87,7 @@ public final class MadokuChunkDataManager {
 		if (server == null) return;
 		Set<ChunkRefKey> dirtyChunkKeys = DATA.collectDirtyChunkKeys();
 		for (ChunkRefKey chunkKey : dirtyChunkKeys) {
-			JsonObject chunkData = DATA.createChunkPersistedData(chunkKey);
+			CompoundTag chunkData = DATA.createChunkPersistedData(chunkKey);
 			WorldChunkDataKey dataKey = new WorldChunkDataKey(
 				chunkKey.levelId(), chunkKey.chunkX(), chunkKey.chunkZ());
 			if (chunkData == null) {
@@ -134,7 +132,7 @@ public final class MadokuChunkDataManager {
 		if (level == null || pos == null) return;
 		ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
 		if (!LOADED_CHUNKS.add(chunkKey)) return;
-		JsonObject data = WorldChunkDataAPIManager.getChunkSystemData(
+		CompoundTag data = WorldChunkDataAPIManager.getChunkSystemData(
 			level,
 			chunkKey.chunkX(),
 			chunkKey.chunkZ(),
@@ -146,7 +144,7 @@ public final class MadokuChunkDataManager {
 		if (level == null) return;
 		ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), chunkX, chunkZ);
 		if (DATA.isDirty(chunkKey)) {
-			JsonObject chunkData = DATA.createChunkPersistedData(chunkKey);
+			CompoundTag chunkData = DATA.createChunkPersistedData(chunkKey);
 			WorldChunkDataKey dataKey = new WorldChunkDataKey(
 				chunkKey.levelId(), chunkKey.chunkX(), chunkKey.chunkZ());
 			if (chunkData == null) {
@@ -170,11 +168,6 @@ public final class MadokuChunkDataManager {
 		int localZ = pos.getZ() & 15;
 		int localY = pos.getY() & 0xFFFF;
 		return (localY << 8) | (localX << 4) | localZ;
-	}
-
-	private static String getString(JsonObject object, String key, String fallback) {
-		try { return object != null && object.has(key) ? object.get(key).getAsString() : fallback; }
-		catch (RuntimeException exception) { return fallback; }
 	}
 
 	private static final class PlayerPlacedBlockData {
@@ -217,13 +210,15 @@ public final class MadokuChunkDataManager {
 		private boolean hasDirtyChunkKeys() { return !dirtyChunkKeys.isEmpty(); }
 		private void evictChunk(ChunkRefKey chunkKey) { positionsByChunk.remove(chunkKey); }
 
-		private JsonObject createChunkPersistedData(ChunkRefKey chunkKey) {
+		private CompoundTag createChunkPersistedData(ChunkRefKey chunkKey) {
 			IntOpenHashSet positions = positionsByChunk.get(chunkKey);
 			if (positions == null || positions.isEmpty()) return null;
-			return JSONFormatAPIManager.object().put(FIELD_PACKED_POSITIONS, encode(positions)).build();
+			CompoundTag data = new CompoundTag();
+			data.putByteArray(FIELD_PACKED_POSITIONS, encode(positions));
+			return data;
 		}
 
-		private String encode(IntOpenHashSet positions) {
+		private byte[] encode(IntOpenHashSet positions) {
 			int[] sorted = positions.toIntArray();
 			Arrays.sort(sorted);
 			byte[] packed = new byte[sorted.length * 3];
@@ -234,25 +229,21 @@ public final class MadokuChunkDataManager {
 				packed[offset++] = (byte) (value >>> 8);
 				packed[offset++] = (byte) value;
 			}
-			return Base64.getEncoder().encodeToString(packed);
+			return packed;
 		}
 
-		private IntOpenHashSet decode(JsonObject source) {
+		private IntOpenHashSet decode(CompoundTag source) {
 			IntOpenHashSet positions = new IntOpenHashSet();
-			String encoded = getString(source, FIELD_PACKED_POSITIONS, "");
-			if (encoded.isBlank()) return positions;
-			try {
-				byte[] packed = Base64.getDecoder().decode(encoded);
-				for (int index = 0; index + 2 < packed.length; index += 3) {
-					positions.add(((packed[index] & 0xFF) << 16)
-						| ((packed[index + 1] & 0xFF) << 8)
-						| (packed[index + 2] & 0xFF));
-				}
-			} catch (IllegalArgumentException ignored) { }
+			byte[] packed = source.getByteArray(FIELD_PACKED_POSITIONS).orElse(new byte[0]);
+			for (int index = 0; index + 2 < packed.length; index += 3) {
+				positions.add(((packed[index] & 0xFF) << 16)
+					| ((packed[index + 1] & 0xFF) << 8)
+					| (packed[index + 2] & 0xFF));
+			}
 			return positions;
 		}
 
-		private void applyChunkPersistedData(JsonObject source, ChunkRefKey chunkKey) {
+		private void applyChunkPersistedData(CompoundTag source, ChunkRefKey chunkKey) {
 			if (chunkKey == null || source == null || source.isEmpty()) return;
 			IntOpenHashSet positions = decode(source);
 			if (!positions.isEmpty()) positionsByChunk.put(chunkKey, positions);
