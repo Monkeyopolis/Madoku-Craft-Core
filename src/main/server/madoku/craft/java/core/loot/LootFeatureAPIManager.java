@@ -141,6 +141,21 @@ public final class LootFeatureAPIManager {
 		return "";
 	}
 
+	public static boolean isPillagerCustomMobDropsEnabled(LivingEntity entity) {
+		for (LootFeatureAdapter adapter : adapters) {
+			if (adapter.isPillagerCustomMobDropsEnabled(entity)) return true;
+		}
+		return false;
+	}
+
+	public static String resolvePillagerMobDropsConfigReference(LivingEntity entity) {
+		for (LootFeatureAdapter adapter : adapters) {
+			String reference = adapter.resolvePillagerMobDropsConfigReference(entity);
+			if (reference != null && !reference.isBlank()) return reference;
+		}
+		return "";
+	}
+
 	public static void applyGeneratedItemLevel(ItemStack stack, RandomSource random) {
 		for (LootFeatureAdapter adapter : adapters) {
 			adapter.applyGeneratedItemLevel(stack, random);

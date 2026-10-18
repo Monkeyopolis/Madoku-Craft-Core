@@ -52,6 +52,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:leather", 60, 1, 3), drop("minecraft:beef", 89, 1, 2), drop("madoku-craft:cow-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/ocelot", buildMobTable("minecraft:entities/ocelot", 1, 2,
 			drop("empty", 149, 0, 0), drop("madoku-craft:ocelot-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/wolf", buildMobTable("minecraft:entities/wolf", 1, 2,
+			drop("empty", 149, 0, 0), drop("madoku-craft:wolf-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/drowned", buildMobTable("minecraft:entities/drowned", 1, 2,
 			drop("minecraft:rotten_flesh", 90, 1, 3), drop("minecraft:copper_ingot", 10, 1, 3)));
 		put(defaults, "minecraft:entities/husk", buildMobTable("minecraft:entities/husk", 1, 2,

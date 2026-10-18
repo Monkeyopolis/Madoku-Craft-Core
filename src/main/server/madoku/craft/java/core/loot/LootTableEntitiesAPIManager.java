@@ -143,6 +143,15 @@ public final class LootTableEntitiesAPIManager {
 			String configuredReference = LootFeatureAPIManager.resolvePiglinMobDropsConfigReference(thisEntity);
 			managed = resolveManagedTableByConfigReference(configuredReference);
 		}
+		if (managed == null && thisEntity != null
+			&& LootFeatureAPIManager.isMobEnabled()
+			&& isEntityType(thisEntity.getType(), "minecraft:pillager")) {
+			if (!LootFeatureAPIManager.isPillagerCustomMobDropsEnabled(thisEntity)) {
+				return null;
+			}
+			String configuredReference = LootFeatureAPIManager.resolvePillagerMobDropsConfigReference(thisEntity);
+			managed = resolveManagedTableByConfigReference(configuredReference);
+		}
 		if (managed == null) {
 			managed = resolveManagedTableByLootId(tableId);
 		}
