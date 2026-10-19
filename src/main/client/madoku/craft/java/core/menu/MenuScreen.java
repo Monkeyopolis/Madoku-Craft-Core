@@ -83,12 +83,14 @@ public final class MenuScreen extends Screen {
 		int panelX = panelX();
 		int panelY = panelY(visibleEntryCount);
 		if (contains(panelX + PANEL_WIDTH - EXIT_RIGHT_INSET - EXIT_SIZE, panelY + EXIT_TOP_INSET, EXIT_SIZE, EXIT_SIZE, mouseX, mouseY)) {
+			MenuSoundManager.playButtonClick();
 			onClose();
 			return true;
 		}
 
 		for (int index = 0; index < visibleEntryCount; index++) {
 			if (buttonBounds(panelX, panelY, index).contains(mouseX, mouseY)) {
+				MenuSoundManager.playButtonClick();
 				MenuAPIManager.openEntry(entries.get(index).id(), Minecraft.getInstance());
 				return true;
 			}

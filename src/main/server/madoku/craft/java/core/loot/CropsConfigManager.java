@@ -28,6 +28,8 @@ public final class CropsConfigManager {
 		put(defaults, "minecraft:blocks/wheat", table("minecraft:blocks/wheat",
 			entryTable(entry("minecraft:wheat", 7, 9)),
 			entryTable(entry("minecraft:wheat-seeds", 1, 3))));
+		put(defaults, "minecraft:blocks/sugar_cane", table("minecraft:blocks/sugar_cane",
+			entryTable(entry("minecraft:sugar_cane", 1, 3))));
 		return defaults;
 	}
 

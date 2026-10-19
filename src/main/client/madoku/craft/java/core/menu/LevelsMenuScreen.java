@@ -104,6 +104,7 @@ public final class LevelsMenuScreen extends Screen {
 		int panelX = panelX(snapshot);
 		int panelY = panelY(snapshot);
 		if (contains(exitX(panelX, snapshot), panelY + EXIT_TOP_INSET, EXIT_SIZE, EXIT_SIZE, event.x(), event.y())) {
+			MenuSoundManager.playButtonClick();
 			returnToMainMenu();
 			return true;
 		}
@@ -118,7 +119,10 @@ public final class LevelsMenuScreen extends Screen {
 			if (statButtonBounds(panelX, panelY, index, currentScrollOffset).contains(event.x(), event.y())
 				&& (!isScrolling(stats) || attributeViewportBounds(panelX, panelY).contains(event.x(), event.y()))) {
 				LevelsMenuProvider.Stat stat = stats.get(index);
-				if (canUpgrade(snapshot, stat)) LevelsMenuAPIManager.requestUpgrade(stat.id());
+				if (canUpgrade(snapshot, stat)) {
+					MenuSoundManager.playButtonClick();
+					LevelsMenuAPIManager.requestUpgrade(stat.id());
+				}
 				return true;
 			}
 		}

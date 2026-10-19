@@ -902,13 +902,19 @@ public final class RecipesAPIManager {
 			return null;
 		}
 
-		Item ingredientItem = resolveItem(configured.ingredientItemId());
 		Item resultItem = resolveItem(configured.resultItemId());
-		if (ingredientItem == null || resultItem == null || configured.pattern().isEmpty()) {
+		if (resultItem == null || configured.pattern().isEmpty() || configured.ingredients().isEmpty()) {
 			return null;
 		}
 
-		Map<Character, Ingredient> key = Map.of(configured.symbol(), Ingredient.of(ingredientItem));
+		Map<Character, Ingredient> key = new LinkedHashMap<>();
+		for (Map.Entry<Character, String> ingredient : configured.ingredients().entrySet()) {
+			Item ingredientItem = resolveItem(ingredient.getValue());
+			if (ingredientItem == null) {
+				return null;
+			}
+			key.put(ingredient.getKey(), Ingredient.of(ingredientItem));
+		}
 		ShapedRecipePattern pattern;
 		try {
 			pattern = ShapedRecipePattern.of(key, configured.pattern());
