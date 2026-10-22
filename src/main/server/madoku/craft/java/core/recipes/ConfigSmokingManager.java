@@ -12,6 +12,7 @@ public final class ConfigSmokingManager {
 
 	public static Set<String> buildAddedSmokingInputs() {
 		Set<String> defaults = new LinkedHashSet<>();
+		defaults.add("minecraft:tropical_fish");
 		defaults.add("minecraft:cactus");
 		defaults.add("minecraft:sea_pickle");
 		defaults.add("minecraft:chorus_fruit");

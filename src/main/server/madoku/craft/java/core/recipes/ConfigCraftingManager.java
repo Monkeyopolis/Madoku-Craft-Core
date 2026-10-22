@@ -21,6 +21,13 @@ public final class ConfigCraftingManager {
 				"minecraft:enchanted_golden_apple",
 				List.of("GGG", "GAG", "GGG"),
 				Map.of('G', "minecraft:gold_block", 'A', "minecraft:apple")
+			),
+			new AddedCraftingRecipe(
+				"food/sweet-berry-cookie",
+				"madoku-craft:sweet-berry-cookie",
+				List.of(" B ", "AAA", " B "),
+				Map.of('A', "minecraft:sweet_berries", 'B', "minecraft:wheat"),
+				4
 			)
 		);
 	}
@@ -29,15 +36,21 @@ public final class ConfigCraftingManager {
 		String path,
 		String resultItemId,
 		List<String> pattern,
-		Map<Character, String> ingredients
+		Map<Character, String> ingredients,
+		int resultCount
 	) {
 		public AddedCraftingRecipe(String path, String resultItemId, List<String> pattern, char symbol, String ingredientItemId) {
-			this(path, resultItemId, pattern, Map.of(symbol, ingredientItemId));
+			this(path, resultItemId, pattern, Map.of(symbol, ingredientItemId), 1);
+		}
+
+		public AddedCraftingRecipe(String path, String resultItemId, List<String> pattern, Map<Character, String> ingredients) {
+			this(path, resultItemId, pattern, ingredients, 1);
 		}
 
 		public AddedCraftingRecipe {
 			pattern = List.copyOf(pattern);
 			ingredients = Map.copyOf(ingredients);
+			resultCount = Math.max(1, resultCount);
 		}
 	}
 }

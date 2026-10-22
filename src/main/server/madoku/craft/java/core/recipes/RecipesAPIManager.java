@@ -349,15 +349,16 @@ public final class RecipesAPIManager {
 		Set<Item> blastInputs = resolveItems(ConfigBlastingManager.buildAddedBlastingInputs());
 		List<RecipeHolder<?>> expanded = new ArrayList<>(source);
 		Set<String> recipeIds = collectRecipeIds(source);
-		List<AbstractCookingRecipe> smeltingRecipes = collectCookingRecipesByType(source, RecipeType.SMELTING);
+		for (ConfigSmeltingManager.AddedCookingRecipe smeltingDefault : ConfigSmeltingManager.buildAddedRecipes()) {
+			createConfiguredCookingRecipe(expanded, recipeIds, smeltingDefault.inputItemId(), smeltingDefault.resultItemId(),
+				RecipeType.SMELTING, smeltingDefault.experience(), smeltingDefault.cookingTime());
+		}
+		List<AbstractCookingRecipe> smeltingRecipes = collectCookingRecipesByType(expanded, RecipeType.SMELTING);
 		if (!smeltingRecipes.isEmpty()) {
 			createDerivedCookingRecipes(expanded, recipeIds, smeltingRecipes, smokerInputs, RecipeType.SMOKING);
 			createDerivedCookingRecipes(expanded, recipeIds, smeltingRecipes, blastInputs, RecipeType.BLASTING);
 		}
 
-		ConfigSmeltingManager.AddedCookingRecipe smeltingDefault = ConfigSmeltingManager.buildAddedRecipe();
-		createConfiguredCookingRecipe(expanded, recipeIds, smeltingDefault.inputItemId(), smeltingDefault.resultItemId(),
-			RecipeType.SMELTING, smeltingDefault.experience(), smeltingDefault.cookingTime());
 		ConfigBlastingManager.AddedCookingRecipe blastingDefault = ConfigBlastingManager.buildAddedRecipe();
 		createConfiguredCookingRecipe(expanded, recipeIds, blastingDefault.inputItemId(), blastingDefault.resultItemId(),
 			RecipeType.BLASTING, blastingDefault.experience(), blastingDefault.cookingTime());
@@ -926,7 +927,7 @@ public final class RecipesAPIManager {
 			new Recipe.CommonInfo(template.showNotification()),
 			new CraftingRecipe.CraftingBookInfo(CraftingBookCategory.EQUIPMENT, ""),
 			pattern,
-			new ItemStackTemplate(resultItem, 1)
+			new ItemStackTemplate(resultItem, configured.resultCount())
 		);
 		String recipeId = uniqueDerivedRecipeId(existingRecipeIds, "crafting", configured.path());
 		var identifier = net.minecraft.resources.Identifier.tryParse(recipeId);
