@@ -297,7 +297,8 @@ public final class RecipesAPIManager {
 		if (identifier == null) {
 			return false;
 		}
-		return MADOKU_RECIPE_NAMESPACE.equals(identifier.getNamespace());
+		return MADOKU_RECIPE_NAMESPACE.equals(identifier.getNamespace())
+			|| ConfigCraftingManager.hasDefaultOverride(identifier.toString());
 	}
 
 	private static boolean isSupportedRecipeConfigFile(
@@ -763,8 +764,10 @@ public final class RecipesAPIManager {
 		));
 
 		RecipesFormatManager.writeDefaults(root, recipe);
+		JsonObject defaults = root.build();
+		ConfigCraftingManager.applyDefaultOverrides(recipeId, defaults);
 
-		return RecipesConfigManager.nestRecipeDefaults(root.build(), snapshot.processCategory());
+		return RecipesConfigManager.nestRecipeDefaults(defaults, snapshot.processCategory());
 	}
 
 	private static String defaultRecipeGroup(Recipe<?> recipe) {

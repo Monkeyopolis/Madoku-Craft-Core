@@ -198,8 +198,8 @@ public final class LootTableCropsAPIManager {
 				case "minecraft:beetroots" -> "minecraft:blocks/beetroots";
 				case "minecraft:melon" -> "minecraft:blocks/melon";
 				case "minecraft:pumpkin" -> "minecraft:blocks/pumpkin";
+				case "minecraft:sweet_berry_bush" -> "minecraft:blocks/sweet_berries";
 				case "minecraft:wheat" -> "minecraft:blocks/wheat";
-				case "minecraft:sugar_cane" -> "minecraft:blocks/sugar_cane";
 				default -> "";
 			};
 		} catch (RuntimeException ignored) {

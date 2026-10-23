@@ -13,23 +13,23 @@ public final class CropsConfigManager {
 	public static Map<String, JsonObject> buildDefaultCropTableFiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		put(defaults, "minecraft:blocks/potatoes", table("minecraft:blocks/potatoes",
-			entryTable(entry("minecraft:potato", 5, 7))));
+			entryTable(entry("minecraft:potato", 3, 5))));
 		put(defaults, "minecraft:blocks/carrots", table("minecraft:blocks/carrots",
-			entryTable(entry("minecraft:carrot", 3, 5))));
+			entryTable(entry("minecraft:carrot", 2, 4))));
 		put(defaults, "minecraft:blocks/beetroots", table("minecraft:blocks/beetroots",
-			entryTable(entry("minecraft:beetroot", 5, 7)),
+			entryTable(entry("minecraft:beetroot", 3, 5)),
 			entryTable(entry("minecraft:beetroot-seeds", 1, 3))));
 		put(defaults, "minecraft:blocks/melon", table("minecraft:blocks/melon",
-			entryTable(entry("minecraft:melon-slice", 11, 13)),
+			entryTable(entry("minecraft:melon-slice", 4, 6)),
 			entryTable(entry("minecraft:melon-seeds", 1, 3))));
 		put(defaults, "minecraft:blocks/pumpkin", table("minecraft:blocks/pumpkin",
-			entryTable(entry("minecraft:pumpkin", 1, 3)),
+			entryTable(entry("minecraft:pumpkin", 1, 2)),
 			entryTable(entry("minecraft:pumpkin-seeds", 1, 3))));
+		put(defaults, "minecraft:blocks/sweet_berries", table("minecraft:blocks/sweet_berries",
+			entryTable(entry("minecraft:sweet_berries", 1, 3))));
 		put(defaults, "minecraft:blocks/wheat", table("minecraft:blocks/wheat",
-			entryTable(entry("minecraft:wheat", 7, 9)),
+			entryTable(entry("minecraft:wheat", 5, 7)),
 			entryTable(entry("minecraft:wheat-seeds", 1, 3))));
-		put(defaults, "minecraft:blocks/sugar_cane", table("minecraft:blocks/sugar_cane",
-			entryTable(entry("minecraft:sugar_cane", 1, 3))));
 		return defaults;
 	}
 

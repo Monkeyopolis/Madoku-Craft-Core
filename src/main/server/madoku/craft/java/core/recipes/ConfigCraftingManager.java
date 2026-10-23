@@ -1,5 +1,8 @@
 package madoku.craft.java.core.recipes;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
 import java.util.List;
 import java.util.Map;
 
@@ -27,9 +30,39 @@ public final class ConfigCraftingManager {
 				"madoku-craft:sweet-berry-cookie",
 				List.of(" B ", "AAA", " B "),
 				Map.of('A', "minecraft:sweet_berries", 'B', "minecraft:wheat"),
-				4
+				3
 			)
 		);
+	}
+
+	public static void applyDefaultOverrides(String recipeId, JsonObject defaults) {
+		if (!hasDefaultOverride(recipeId) || defaults == null) {
+			return;
+		}
+
+		defaults.addProperty(RecipesConfigManager.FIELD_CUSTOM_RECIPE, true);
+		defaults.addProperty(RecipesConfigManager.FIELD_RESULT_COUNT, 5);
+		defaults.addProperty(RecipesConfigManager.FIELD_CRAFTING_SHAPE, RecipesConfigManager.CRAFTING_SHAPE_SHAPED);
+
+		JsonArray pattern = new JsonArray();
+		pattern.add("-B-");
+		pattern.add("AAA");
+		pattern.add("-B-");
+		defaults.add(RecipesConfigManager.FIELD_PATTERN, pattern);
+
+		JsonObject key = new JsonObject();
+		key.addProperty("A", "minecraft:cocoa_beans");
+		key.addProperty("B", "minecraft:wheat");
+		defaults.add(RecipesConfigManager.FIELD_KEY, key);
+
+		JsonArray ingredients = new JsonArray();
+		ingredients.add("minecraft:cocoa_beans");
+		ingredients.add("minecraft:wheat");
+		defaults.add(RecipesConfigManager.FIELD_INGREDIENTS, ingredients);
+	}
+
+	public static boolean hasDefaultOverride(String recipeId) {
+		return recipeId != null && "minecraft:cookie".equalsIgnoreCase(recipeId.trim());
 	}
 
 	public record AddedCraftingRecipe(
