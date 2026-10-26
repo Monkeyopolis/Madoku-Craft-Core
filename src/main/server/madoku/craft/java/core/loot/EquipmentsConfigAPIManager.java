@@ -55,34 +55,36 @@ public final class EquipmentsConfigAPIManager {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		String[] mobs = {
 			"skeleton", "stray", "bogged", "parched", "wither-skeleton",
-			"zombie", "husk", "drowned", "zombie-villager", "piglin"
+			"zombie", "husk", "drowned", "zombie-villager", "piglin", "zombified-piglin"
 		};
 		for (String mob : mobs) {
 			String fileKey = "minecraft-equipment-" + mob;
 			defaults.put(fileKey, "piglin".equals(mob)
-				? buildDefaultPiglinProfile()
+				? buildDefaultPiglinProfile("minecraft:piglin", "golden")
+				: "zombified-piglin".equals(mob)
+				? buildDefaultPiglinProfile("minecraft:zombified-piglin", "iron")
 				: buildDefaultProfile("minecraft:" + mob));
 		}
 		return defaults;
 	}
 
-	private static JsonObject buildDefaultPiglinProfile() {
+	private static JsonObject buildDefaultPiglinProfile(String mobId, String armorMaterial) {
 		return JSONFormatAPIManager.object()
 			.put(FIELD_ENABLED, true)
-			.put(FIELD_MOB_ID, "minecraft:piglin")
+			.put(FIELD_MOB_ID, mobId)
 			.object(FIELD_EQUIPMENTS, equipments -> equipments
-				.put(FIELD_HEAD, buildDefaultPiglinArmorEntries("helmet"))
-				.put(FIELD_CHEST, buildDefaultPiglinArmorEntries("chestplate"))
-				.put(FIELD_LEGS, buildDefaultPiglinArmorEntries("leggings"))
-				.put(FIELD_FEET, buildDefaultPiglinArmorEntries("boots"))
+				.put(FIELD_HEAD, buildDefaultPiglinArmorEntries(armorMaterial, "helmet"))
+				.put(FIELD_CHEST, buildDefaultPiglinArmorEntries(armorMaterial, "chestplate"))
+				.put(FIELD_LEGS, buildDefaultPiglinArmorEntries(armorMaterial, "leggings"))
+				.put(FIELD_FEET, buildDefaultPiglinArmorEntries(armorMaterial, "boots"))
 				.put(FIELD_MAIN_HAND, buildEmptySlotEntries())
 				.put(FIELD_OFF_HAND, buildEmptySlotEntries()))
 			.build();
 	}
 
-	private static JsonArray buildDefaultPiglinArmorEntries(String piece) {
+	private static JsonArray buildDefaultPiglinArmorEntries(String armorMaterial, String piece) {
 		return JSONFormatAPIManager.array()
-			.add(defaultItem("minecraft:golden-" + piece, 10.0D))
+			.add(defaultItem("minecraft:" + armorMaterial + "-" + piece, 10.0D))
 			.add(defaultItem("empty", 1900.0D))
 			.build();
 	}

@@ -50,6 +50,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:feather", 60, 1, 3), drop("minecraft:chicken", 89, 1, 2), drop("madoku-craft:chicken-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/cow", buildMobTable("minecraft:entities/cow", 1, 2,
 			drop("minecraft:leather", 60, 1, 3), drop("minecraft:beef", 89, 1, 2), drop("madoku-craft:cow-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/donkey", buildMobTable("minecraft:entities/donkey", 1, 2,
+			drop("minecraft:leather", 60, 1, 3), drop("madoku-craft:donkey-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/ocelot", buildMobTable("minecraft:entities/ocelot", 1, 2,
 			drop("empty", 149, 0, 0), drop("madoku-craft:ocelot-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/wolf", buildMobTable("minecraft:entities/wolf", 1, 2,
@@ -64,6 +66,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:rabbit", 89, 1, 2), drop("minecraft:rabbit_foot", 20, 0, 1), drop("minecraft:rabbit_hide", 60, 0, 1), drop("madoku-craft:rabbit-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/piglin", buildMobTable("minecraft:entities/piglin", 1, 2,
 			drop("minecraft:gold_nugget", 1, 1, 3)));
+		put(defaults, "minecraft:entities/zombified_piglin", buildMobTable("minecraft:entities/zombified_piglin", 1, 2,
+			drop("minecraft:iron_nugget", 1, 1, 3)));
 		put(defaults, "minecraft:entities/skeleton", buildMobTable("minecraft:entities/skeleton", 1, 2,
 			drop("minecraft:bone", 89, 1, 3), drop("minecraft:arrow", 60, 1, 2), drop("madoku-craft:skeleton-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/sheep", buildMobTable("minecraft:entities/sheep", 1, 2,

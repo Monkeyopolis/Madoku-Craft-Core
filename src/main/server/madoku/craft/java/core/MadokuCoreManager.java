@@ -23,6 +23,7 @@ import madoku.craft.java.core.recipes.RecipesAPIManager;
 import madoku.craft.java.core.runtime.AdaptiveIntervalAPIManager;
 import madoku.craft.java.core.runtime.MadokuAdaptiveIntervalProvider;
 import madoku.craft.java.core.season.SeasonAPIManager;
+import madoku.craft.java.core.status.EntityStunManager;
 import madoku.craft.java.core.sync.SyncAPIManager;
 import madoku.craft.java.core.sync.SyncConfigAPIManager;
 import madoku.craft.java.core.sync.MadokuSyncProvider;
@@ -94,6 +95,7 @@ public final class MadokuCoreManager {
 
 	/** Resets runtime state for the core services and all core subsystems. */
 	public static void reset() {
+		EntityStunManager.reset();
 		SyncConfigAPIManager.resetClientSynchronizedState();
 		HelperAPIManager.reset();
 		DataAPIManager.reset();
@@ -140,6 +142,7 @@ public final class MadokuCoreManager {
 	}
 
 	public static void onServerTick(net.minecraft.server.MinecraftServer server) {
+		EntityStunManager.onServerTick();
 		TimeAPIManager.advance(server, TimeAPIManager.getCachedSleepTickIncrement());
 		TimeAPIManager.update(server);
 		HelperAPIManager.onServerTick(server);
