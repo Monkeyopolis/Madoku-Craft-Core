@@ -121,6 +121,7 @@ public final class StructuresConfigManager {
 			StructuresConfigManager.item("madoku-craft:chicken-pet", 40, 1, 1),
 			StructuresConfigManager.item("madoku-craft:rabbit-pet", 40, 1, 1),
 			StructuresConfigManager.item("madoku-craft:ocelot-pet", 40, 1, 1),
+			StructuresConfigManager.item("madoku-craft:silverfish-pet", 100, 1, 1),
 			StructuresConfigManager.item("madoku-craft:wolf-pet", 20, 1, 1)
 		);
 	}

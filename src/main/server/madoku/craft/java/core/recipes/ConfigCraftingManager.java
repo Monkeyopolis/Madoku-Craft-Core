@@ -37,6 +37,17 @@ public final class ConfigCraftingManager {
 				"madoku-craft:bowl-of-melon",
 				List.of("   ", "AAA", " B "),
 				Map.of('A', "minecraft:melon-slice", 'B', "minecraft:bowl")
+			),
+			new AddedCraftingRecipe(
+				"food/glowberry-pie",
+				"madoku-craft:glowberry-pie",
+				List.of("   ", "ABA", "CBD"),
+				Map.of(
+					'A', "minecraft:glow-berries",
+					'B', "minecraft:sugar",
+					'C', "minecraft:wheat",
+					'D', "minecraft:egg"
+				)
 			)
 		);
 	}

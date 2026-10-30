@@ -173,7 +173,9 @@ public final class JSONAPIManager {
 	}
 
 	private static void ensureInside(Path root, Path child, String label) {
-		if (!child.startsWith(root.toAbsolutePath().normalize())) throw new IllegalArgumentException(label + " must remain inside its root.");
+		Path normalizedRoot = root.toAbsolutePath().normalize();
+		Path normalizedChild = child.toAbsolutePath().normalize();
+		if (!normalizedChild.startsWith(normalizedRoot)) throw new IllegalArgumentException(label + " must remain inside its root.");
 	}
 
 	private static long readLong(JsonObject object, String key, long fallback) {

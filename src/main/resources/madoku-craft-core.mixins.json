@@ -19,6 +19,7 @@
     "core.MobStunMixin",
     "core.LootTableDynamicMixin",
     "core.LootTableRarityMixin",
+    "core.PlayerMiningSpeedMixin",
     "core.PlayerInventoryRecipeUnlockMixin",
     "core.PlayerSleepTickMixin",
     "core.RandomizableContainerLootMixin",

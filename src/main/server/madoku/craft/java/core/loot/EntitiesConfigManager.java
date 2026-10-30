@@ -72,6 +72,8 @@ public final class EntitiesConfigManager {
 			drop("minecraft:bone", 89, 1, 3), drop("minecraft:arrow", 60, 1, 2), drop("madoku-craft:skeleton-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/sheep", buildMobTable("minecraft:entities/sheep", 1, 2,
 			drop("minecraft:white_wool", 60, 1, 3), drop("minecraft:mutton", 89, 1, 2), drop("madoku-craft:sheep-pet", 1, 0, 1)));
+		put(defaults, "minecraft:entities/silverfish", buildMobTable("minecraft:entities/silverfish", 1, 2,
+			drop("empty", 149, 0, 0), drop("madoku-craft:silverfish-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/spider", buildMobTable("minecraft:entities/spider", 1, 2,
 			drop("minecraft:string", 89, 1, 3), drop("minecraft:spider_eye", 60, 1, 2), drop("madoku-craft:spider-pet", 1, 0, 1)));
 		put(defaults, "minecraft:entities/stray", buildMobTable("minecraft:entities/stray", 1, 2,
