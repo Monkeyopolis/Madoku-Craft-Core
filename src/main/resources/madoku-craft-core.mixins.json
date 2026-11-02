@@ -39,6 +39,7 @@
     "season.SnowLayerBlockSeasonalMeltMixin"
   ],
   "client": [
+		"core.KeyMappingAccessor",
     "core.EnchantmentScreenMixin",
     "core.GuiGraphicsRarityOverlayMixin",
     "inventory.AbstractContainerScreenAccessor",
