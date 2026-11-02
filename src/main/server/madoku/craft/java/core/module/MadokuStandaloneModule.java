@@ -3,8 +3,7 @@ package madoku.craft.java.core.module;
 import net.minecraft.server.MinecraftServer;
 
 /** Lifecycle contract used by a module's standalone Fabric entrypoint. */
-public interface MadokuStandaloneModule {
-	void initialize();
+public interface MadokuStandaloneModule extends MadokuModule {
 
 	default void reset() {
 	}

@@ -2,6 +2,7 @@ package madoku.craft.java.core;
 
 import madoku.craft.java.core.module.MadokuStandaloneModule;
 import madoku.craft.java.core.module.MadokuStandaloneRuntime;
+import madoku.craft.java.core.module.MadokuModuleIds;
 import madoku.craft.java.core.time.TimeAPIManager;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.entity.event.v1.EntitySleepEvents;
@@ -9,6 +10,8 @@ import net.minecraft.server.MinecraftServer;
 
 /** Fabric entrypoint for the standalone Core jar. */
 public final class MadokuCoreInitializer implements ModInitializer, MadokuStandaloneModule {
+	@Override public net.minecraft.resources.Identifier id() { return MadokuModuleIds.CORE; }
+
 	@Override
 	public void onInitialize() {
 		MadokuStandaloneRuntime.initialize(this);
