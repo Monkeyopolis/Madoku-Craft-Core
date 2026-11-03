@@ -47,6 +47,10 @@ public final class LootTableAPIManager {
 		return provider.generateManagedLootForContext(lootContext);
 	}
 
+	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) {
+		return provider.generateManagedLootForTable(tableId, random);
+	}
+
 	public static void reset() { provider.reset(); }
 
 	static long resolveReloadIntervalMillis(net.minecraft.server.MinecraftServer server) {
@@ -134,7 +138,11 @@ public final class LootTableAPIManager {
 			JsonObject rolls = readObject( tableEntry, LootTableConfigManager.FIELD_ROLLS);
 			int minRolls = Math.max(0, readInt(rolls, LootTableConfigManager.FIELD_MIN, 1));
 			int maxRolls = Math.max(minRolls, readInt(rolls, LootTableConfigManager.FIELD_MAX, minRolls));
-			List<SharedLootEntry> entries = parseSharedEntries(tableEntry.get(LootTableConfigManager.FIELD_ENTRY));
+			JsonElement entriesElement = tableEntry.get(LootTableConfigManager.FIELD_ENTRY);
+			if (!(entriesElement instanceof JsonArray entriesArray) || entriesArray.isEmpty()) {
+				entriesElement = tableEntry.get(LootTableConfigManager.FIELD_ENTRIES);
+			}
+			List<SharedLootEntry> entries = parseSharedEntries(entriesElement);
 			if (!entries.isEmpty()) {
 				tableEntries.add(new SharedTableEntry(minRolls, maxRolls, List.copyOf(entries)));
 			}

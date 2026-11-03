@@ -12,6 +12,14 @@ public interface UiLayoutElement {
 
 	int defaultY();
 
+	default int defaultX(Minecraft client) {
+		return defaultX();
+	}
+
+	default int defaultY(Minecraft client) {
+		return defaultY();
+	}
+
 	Bounds bounds(Minecraft client, int x, int y);
 
 	/** Whether this element's owning system is enabled and may be edited. */

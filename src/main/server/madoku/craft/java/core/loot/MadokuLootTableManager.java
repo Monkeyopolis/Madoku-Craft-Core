@@ -3,6 +3,7 @@ package madoku.craft.java.core.loot;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -21,6 +22,7 @@ public final class MadokuLootTableManager {
 		LootTableEntitiesAPIManager.initialize();
 		LootTableEquipmentsManager.initialize();
 		LootTableCropsAPIManager.initialize();
+		LootTableQuestsManager.initialize();
 	}
 	public static void reset() {
 		LootTableEquipmentsManager.reset();
@@ -28,6 +30,7 @@ public final class MadokuLootTableManager {
 		LootTableEntitiesAPIManager.reset();
 		LootTableConfigManager.reset();
 		LootTableCropsAPIManager.reset();
+		LootTableQuestsManager.reset();
 	}
 	public static boolean applyManagedLootTable(Container container, ResourceKey<LootTable> lootTableKey, long lootTableSeed, ServerLevel level, ServerPlayer player) {
 		return LootTableStructuresManager.applyManagedLootTable(container, lootTableKey, lootTableSeed, level, player);
@@ -37,5 +40,8 @@ public final class MadokuLootTableManager {
 		if (generated != null) return generated;
 		generated = LootTableEntitiesAPIManager.generateManagedLootForContext(lootContext);
 		return generated != null ? generated : LootTableCropsAPIManager.generateManagedLootForContext(lootContext);
+	}
+	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) {
+		return LootTableQuestsManager.generateManagedLootForTable(tableId, random);
 	}
 }

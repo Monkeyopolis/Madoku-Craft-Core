@@ -19,6 +19,7 @@ import com.mojang.blaze3d.platform.InputConstants;
 import madoku.craft.java.core.input.KeybindAPIManager;
 import madoku.craft.java.core.json.JSONAPIManager;
 import madoku.craft.java.core.json.JSONFormatAPIManager;
+import madoku.craft.java.core.json.JSONTypeAPIManager;
 import madoku.craft.mixin.core.KeyMappingAccessor;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.KeyMapping;
@@ -47,6 +48,8 @@ public final class UiLayoutAPIManager {
 	private static final Map<Identifier, UiLayoutElement> ELEMENTS = new LinkedHashMap<>();
 	private static final Map<Identifier, Position> POSITIONS_BY_ID = new LinkedHashMap<>();
 	private static final Set<Identifier> CONFIGURED_POSITION_IDS = new HashSet<>();
+	private static final JSONFormatAPIManager.DynamicEntryNormalizer POSITION_ENTRY_NORMALIZER =
+		(key, sourceValue) -> normalizePositionEntry(sourceValue);
 	private static KeyMapping editKey;
 	private static boolean initialized;
 	private static boolean editMode;
@@ -89,7 +92,12 @@ public final class UiLayoutAPIManager {
 
 	public static Position position(UiLayoutElement element) {
 		if (element == null) return new Position(0, 0);
-		return position(element.id(), element.defaultX(), element.defaultY());
+		Minecraft client = Minecraft.getInstance();
+		Position defaultPosition = new Position(element.defaultX(client), element.defaultY(client));
+		Position position = CONFIGURED_POSITION_IDS.contains(element.id())
+			? position(element.id(), defaultPosition.x(), defaultPosition.y())
+			: defaultPosition;
+		return clampToScreen(element, client, position);
 	}
 
 	public static Position position(Identifier id, int defaultX, int defaultY) {
@@ -116,25 +124,7 @@ public final class UiLayoutAPIManager {
 		UiLayoutElement element = ELEMENTS.get(id);
 		if (element == null) return;
 
-		int x = requestedX;
-		int y = requestedY;
-		if (client != null) {
-			UiLayoutElement.Bounds requestedBounds = element.bounds(client, requestedX, requestedY);
-			int screenWidth = client.getWindow().getGuiScaledWidth();
-			int screenHeight = client.getWindow().getGuiScaledHeight();
-			int maxX = Math.max(0, screenWidth - Math.max(0, requestedBounds.width()));
-			int maxY = Math.max(0, screenHeight - Math.max(0, requestedBounds.height()));
-			x = Math.max(0, Math.min(maxX, requestedX));
-			y = Math.max(0, Math.min(maxY, requestedY));
-		}
-		POSITIONS_BY_ID.put(id, new Position(x, y));
-	}
-
-	/** Applies a dynamic default after the client window exists without replacing a saved position. */
-	public static void initializePositionIfUnset(Identifier id, Minecraft client, int requestedX, int requestedY) {
-		if (id == null || client == null || CONFIGURED_POSITION_IDS.contains(id)) return;
-		if (!ELEMENTS.containsKey(id)) return;
-		setPosition(id, client, requestedX, requestedY);
+		POSITIONS_BY_ID.put(id, clampToScreen(element, client, new Position(requestedX, requestedY)));
 		CONFIGURED_POSITION_IDS.add(id);
 	}
 
@@ -217,11 +207,16 @@ public final class UiLayoutAPIManager {
 			CONFIGURED_POSITION_IDS.clear();
 			Path directory = JSONAPIManager.getOrCreateGlobalSystemDirectory(CONFIG_FOLDER_NAME);
 			Path file = directory.resolve(CONFIG_FILE_NAME + ".json");
-			JsonObject normalized = JSONFormatAPIManager.ensureManagedFile(file, buildDefaultsJson());
+			JsonObject normalized = JSONFormatAPIManager.ensureManagedFile(
+				file,
+				buildDefaultsJson(),
+				JSONTypeAPIManager.DYNAMIC_CONFIG,
+				POSITION_ENTRY_NORMALIZER
+			);
 			JsonElement positionsElement = normalized.get(POSITIONS);
 			if (positionsElement != null && positionsElement.isJsonObject()) {
 				for (Map.Entry<String, JsonElement> entry : positionsElement.getAsJsonObject().entrySet()) {
-					Identifier id = Identifier.tryParse(entry.getKey());
+					Identifier id = normalizeLayoutIdentifier(entry.getKey());
 					if (id == null || !entry.getValue().isJsonObject()) continue;
 					JsonObject position = entry.getValue().getAsJsonObject();
 					POSITIONS_BY_ID.put(id, new Position(
@@ -231,7 +226,13 @@ public final class UiLayoutAPIManager {
 					CONFIGURED_POSITION_IDS.add(id);
 				}
 			}
-			JSONFormatAPIManager.writeManagedFile(file, buildConfigJson(), buildDefaultsJson());
+			JSONFormatAPIManager.writeManagedFile(
+				file,
+				buildConfigJson(),
+				buildDefaultsJson(),
+				JSONTypeAPIManager.DYNAMIC_CONFIG,
+				POSITION_ENTRY_NORMALIZER
+			);
 		} catch (IOException | RuntimeException exception) {
 			LOGGER.error("Failed to load Madoku UI layout configuration; using defaults.", exception);
 		}
@@ -239,9 +240,10 @@ public final class UiLayoutAPIManager {
 
 	private static JsonObject buildConfigJson() {
 		JSONFormatAPIManager.ObjectBuilder root = JSONFormatAPIManager.object();
-		root.object(POSITIONS, positions -> POSITIONS_BY_ID.forEach((id, position) ->
-			positions.object(id.toString(), child -> child.put(X, position.x()).put(Y, position.y()))
-		));
+		root.object(POSITIONS, positions -> POSITIONS_BY_ID.forEach((id, position) -> {
+			if (!CONFIGURED_POSITION_IDS.contains(id)) return;
+			positions.object(id.toString(), child -> child.put(X, position.x()).put(Y, position.y()));
+		}));
 		return root.build();
 	}
 
@@ -249,10 +251,47 @@ public final class UiLayoutAPIManager {
 		try {
 			Path directory = JSONAPIManager.getOrCreateGlobalSystemDirectory(CONFIG_FOLDER_NAME);
 			Path file = directory.resolve(CONFIG_FILE_NAME + ".json");
-			JSONFormatAPIManager.writeManagedFile(file, buildConfigJson(), buildDefaultsJson());
+			JSONFormatAPIManager.writeManagedFile(
+				file,
+				buildConfigJson(),
+				buildDefaultsJson(),
+				JSONTypeAPIManager.DYNAMIC_CONFIG,
+				POSITION_ENTRY_NORMALIZER
+			);
 		} catch (IOException | RuntimeException exception) {
 			LOGGER.error("Failed to save Madoku UI layout configuration.", exception);
 		}
+	}
+
+	private static JsonElement normalizePositionEntry(JsonElement sourceValue) {
+		if (sourceValue == null || !sourceValue.isJsonObject()) return null;
+		JsonObject source = sourceValue.getAsJsonObject();
+		return JSONFormatAPIManager.object()
+			.put(X, readInt(source, X, 0))
+			.put(Y, readInt(source, Y, 0))
+			.build();
+	}
+
+	private static Identifier normalizeLayoutIdentifier(String rawId) {
+		Identifier parsed = Identifier.tryParse(rawId);
+		if (parsed == null) return null;
+		String normalizedPath = parsed.getPath().replace('_', '-');
+		return normalizedPath.equals(parsed.getPath())
+			? parsed
+			: Identifier.fromNamespaceAndPath(parsed.getNamespace(), normalizedPath);
+	}
+
+	private static Position clampToScreen(UiLayoutElement element, Minecraft client, Position position) {
+		if (element == null || client == null || client.getWindow() == null || position == null) return position;
+		UiLayoutElement.Bounds bounds = element.bounds(client, position.x(), position.y());
+		int screenWidth = client.getWindow().getGuiScaledWidth();
+		int screenHeight = client.getWindow().getGuiScaledHeight();
+		int maxX = Math.max(0, screenWidth - Math.max(0, bounds.width()));
+		int maxY = Math.max(0, screenHeight - Math.max(0, bounds.height()));
+		return new Position(
+			Math.max(0, Math.min(maxX, position.x())),
+			Math.max(0, Math.min(maxY, position.y()))
+		);
 	}
 
 	private static int readInt(JsonObject source, String key, int fallback) {

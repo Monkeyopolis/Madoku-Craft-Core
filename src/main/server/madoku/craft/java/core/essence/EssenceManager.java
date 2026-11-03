@@ -1,6 +1,8 @@
 package madoku.craft.java.core.essence;
 
 import madoku.craft.java.core.loot.LootFeatureAPIManager;
+import madoku.craft.java.core.module.MadokuModuleIds;
+import madoku.craft.java.core.module.MadokuModuleLifecycleManager;
 import net.fabricmc.fabric.api.creativetab.v1.CreativeModeTabEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.minecraft.core.Registry;
@@ -60,6 +62,7 @@ public final class EssenceManager {
 	}
 
 	private static void dropForPlayerAttributedKill(net.minecraft.world.entity.LivingEntity entity, DamageSource damageSource) {
+		if (MadokuModuleLifecycleManager.server().isRunning(MadokuModuleIds.QUESTS)) return;
 		if (!(entity instanceof Mob mob) || !(entity.level() instanceof ServerLevel level)) return;
 		if (LootFeatureAPIManager.resolvePlayerDamageSource(damageSource) == null) return;
 

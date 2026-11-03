@@ -3,6 +3,7 @@ package madoku.craft.java.core.loot;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.storage.loot.LootContext;
@@ -16,4 +17,5 @@ public final class MadokuLootTableProvider implements LootTableProvider {
 	@Override public void reset() { MadokuLootTableManager.reset(); }
 	@Override public boolean applyManagedLootTable(Container container, ResourceKey<LootTable> lootTableKey, long lootTableSeed, ServerLevel level, ServerPlayer player) { return MadokuLootTableManager.applyManagedLootTable(container, lootTableKey, lootTableSeed, level, player); }
 	@Override public List<ItemStack> generateManagedLootForContext(LootContext lootContext) { return MadokuLootTableManager.generateManagedLootForContext(lootContext); }
+	@Override public List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) { return MadokuLootTableManager.generateManagedLootForTable(tableId, random); }
 }
