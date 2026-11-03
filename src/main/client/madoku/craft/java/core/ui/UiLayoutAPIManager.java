@@ -6,9 +6,11 @@ import com.google.gson.JsonObject;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +33,7 @@ import net.minecraft.resources.Identifier;
 public final class UiLayoutAPIManager {
 	private static final Logger LOGGER = LoggerFactory.getLogger(UiLayoutAPIManager.class);
 	private static final String CONFIG_FOLDER_NAME = "madoku-craft-core";
-	private static final String CONFIG_FILE_NAME = "madoku-ui-layout";
+	private static final String CONFIG_FILE_NAME = "madoku-core";
 	private static final String POSITIONS = "positions";
 	private static final String X = "x";
 	private static final String Y = "y";
@@ -44,6 +46,7 @@ public final class UiLayoutAPIManager {
 
 	private static final Map<Identifier, UiLayoutElement> ELEMENTS = new LinkedHashMap<>();
 	private static final Map<Identifier, Position> POSITIONS_BY_ID = new LinkedHashMap<>();
+	private static final Set<Identifier> CONFIGURED_POSITION_IDS = new HashSet<>();
 	private static KeyMapping editKey;
 	private static boolean initialized;
 	private static boolean editMode;
@@ -127,6 +130,14 @@ public final class UiLayoutAPIManager {
 		POSITIONS_BY_ID.put(id, new Position(x, y));
 	}
 
+	/** Applies a dynamic default after the client window exists without replacing a saved position. */
+	public static void initializePositionIfUnset(Identifier id, Minecraft client, int requestedX, int requestedY) {
+		if (id == null || client == null || CONFIGURED_POSITION_IDS.contains(id)) return;
+		if (!ELEMENTS.containsKey(id)) return;
+		setPosition(id, client, requestedX, requestedY);
+		CONFIGURED_POSITION_IDS.add(id);
+	}
+
 	public static void finishEditing() {
 		if (!editMode) return;
 		editMode = false;
@@ -203,6 +214,7 @@ public final class UiLayoutAPIManager {
 
 	private static void loadConfig() {
 		try {
+			CONFIGURED_POSITION_IDS.clear();
 			Path directory = JSONAPIManager.getOrCreateGlobalSystemDirectory(CONFIG_FOLDER_NAME);
 			Path file = directory.resolve(CONFIG_FILE_NAME + ".json");
 			JsonObject normalized = JSONFormatAPIManager.ensureManagedFile(file, buildDefaultsJson());
@@ -216,6 +228,7 @@ public final class UiLayoutAPIManager {
 						readInt(position, X, 0),
 						readInt(position, Y, 0)
 					));
+					CONFIGURED_POSITION_IDS.add(id);
 				}
 			}
 			JSONFormatAPIManager.writeManagedFile(file, buildConfigJson(), buildDefaultsJson());

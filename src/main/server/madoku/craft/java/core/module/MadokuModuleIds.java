@@ -16,6 +16,7 @@ public final class MadokuModuleIds {
 	public static final Identifier LEVELS = id("levels");
 	public static final Identifier MOBS = id("mobs");
 	public static final Identifier PETS = id("pets");
+	public static final Identifier QUESTS = id("quests");
 	public static final Identifier UTILITY = id("utility");
 
 	private MadokuModuleIds() { }
