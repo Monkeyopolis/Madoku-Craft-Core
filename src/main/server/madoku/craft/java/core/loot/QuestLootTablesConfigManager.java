@@ -12,9 +12,9 @@ public final class QuestLootTablesConfigManager {
 
 	public static Map<String, JsonObject> buildDefaultQuestTableFiles() {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
-		put(defaults, "quest-easy-difficulty", 1, 3);
-		put(defaults, "quest-normal-difficulty", 3, 5);
-		put(defaults, "quest-hard-difficulty", 7, 9);
+		put(defaults, "quest-easy-difficulty", 0, 2);
+		put(defaults, "quest-normal-difficulty", 1, 3);
+		put(defaults, "quest-hard-difficulty", 3, 5);
 		return defaults;
 	}
 

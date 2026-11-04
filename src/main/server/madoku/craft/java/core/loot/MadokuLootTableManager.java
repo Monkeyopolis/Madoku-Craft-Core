@@ -44,4 +44,7 @@ public final class MadokuLootTableManager {
 	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) {
 		return LootTableQuestsManager.generateManagedLootForTable(tableId, random);
 	}
+	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random, double rewardMultiplier) {
+		return LootTableQuestsManager.generateManagedLootForTable(tableId, random, rewardMultiplier);
+	}
 }

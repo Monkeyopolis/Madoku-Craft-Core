@@ -51,6 +51,10 @@ public final class LootTableAPIManager {
 		return provider.generateManagedLootForTable(tableId, random);
 	}
 
+	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random, double rewardMultiplier) {
+		return provider.generateManagedLootForTable(tableId, random, rewardMultiplier);
+	}
+
 	public static void reset() { provider.reset(); }
 
 	static long resolveReloadIntervalMillis(net.minecraft.server.MinecraftServer server) {
@@ -151,7 +155,11 @@ public final class LootTableAPIManager {
 	}
 
 	static List<ItemStack> rollSharedTable(SharedLootTable table, RandomSource random) {
-		return rollSharedTable(table, random, 0.0d, false);
+		return rollSharedTable(table, random, 0.0d, false, 1.0d);
+	}
+
+	static List<ItemStack> rollSharedTable(SharedLootTable table, RandomSource random, double rewardMultiplier) {
+		return rollSharedTable(table, random, 0.0d, false, rewardMultiplier);
 	}
 
 	static List<ItemStack> rollSharedTable(
@@ -162,14 +170,15 @@ public final class LootTableAPIManager {
 	) {
 		boolean luckActive = useMadokuLuck && player != null && LootFeatureAPIManager.isLuckEnabled();
 		double luckStat = luckActive ? LootFeatureAPIManager.resolveLootLuckStat(player) : 0.0d;
-		return rollSharedTable(table, random, luckStat, luckActive);
+		return rollSharedTable(table, random, luckStat, luckActive, 1.0d);
 	}
 
 	private static List<ItemStack> rollSharedTable(
 		SharedLootTable table,
 		RandomSource random,
 		double luckStat,
-		boolean luckActive
+		boolean luckActive,
+		double rewardMultiplier
 	) {
 		if (table == null || random == null || table.tableEntries().isEmpty()) {
 			return List.of();
@@ -177,8 +186,8 @@ public final class LootTableAPIManager {
 
 		List<ItemStack> generated = new ArrayList<>();
 		for (SharedTableEntry tableEntry : table.tableEntries()) {
-			int minRolls = Math.max(0, tableEntry.minRolls());
-			int maxRolls = Math.max(minRolls, tableEntry.maxRolls());
+			int minRolls = scaleDiscreteReward(tableEntry.minRolls(), rewardMultiplier);
+			int maxRolls = Math.max(minRolls, scaleDiscreteReward(tableEntry.maxRolls(), rewardMultiplier));
 			int rolls = minRolls == maxRolls
 				? minRolls
 				: minRolls + random.nextInt(maxRolls - minRolls + 1);
@@ -188,13 +197,20 @@ public final class LootTableAPIManager {
 				if (entry == null) {
 					continue;
 				}
-				int min = Math.max(0, entry.minCount());
-				int max = Math.max(min, entry.maxCount());
+				int min = scaleDiscreteReward(entry.minCount(), rewardMultiplier);
+				int max = Math.max(min, scaleDiscreteReward(entry.maxCount(), rewardMultiplier));
 				int count = min == max ? min : min + random.nextInt(max - min + 1);
 				appendSharedStacks(generated, entry.item(), count);
 			}
 		}
 		return List.copyOf(generated);
+	}
+
+	private static int scaleDiscreteReward(int value, double multiplier) {
+		if (value <= 0) return 0;
+		if (!Double.isFinite(multiplier) || multiplier <= 0.0d) return 0;
+		long scaled = Math.round(value * multiplier);
+		return scaled >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) scaled;
 	}
 
 	private static int applySharedRollLuckMultiplier(

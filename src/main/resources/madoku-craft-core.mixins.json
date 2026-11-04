@@ -5,7 +5,9 @@
   "mixins": [
     "attributes.LootPoolSingletonContainerAccessor",
     "attributes.NestedLootTableAccessor",
+    "core.AbstractContainerMenuModificationContextMixin",
     "core.ApplyBonusCountFortuneMixin",
+    "core.BaseContainerBlockEntityModificationMixin",
     "core.BlockItemPlacedBlockTrackingMixin",
     "core.BlockPlayerDestroyDropContextMixin",
     "core.ContainerEntityLootMixin",
@@ -13,6 +15,7 @@
     "core.EnchantmentConfigurationMixin",
     "core.EnchantmentMenuMixin",
     "core.InventoryMenuRarityMixin",
+    "core.ItemEntityDropTrackingMixin",
     "core.LivingEntityStunMixin",
     "core.ItemInputRarityMixin",
     "core.LivingEntityDamageQuantizationMixin",

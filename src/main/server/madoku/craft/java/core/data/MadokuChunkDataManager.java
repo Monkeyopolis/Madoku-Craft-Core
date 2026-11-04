@@ -5,9 +5,11 @@ import madoku.craft.java.core.chunk.ChunkAPIManager;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,12 +17,17 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
-/** Native per-chunk state for blocks placed by players. */
+/** Native per-chunk state for player provenance markers. */
 public final class MadokuChunkDataManager {
-	private static final String DATA_SYSTEM_ID = "player-placed-blocks";
+	private static final String PLAYER_PLACED_BLOCKS_SYSTEM_ID = "player-placed-blocks";
+	private static final String PLAYER_MODIFIED_CONTAINERS_SYSTEM_ID = "player-modified-containers";
 	private static final String FIELD_PACKED_POSITIONS = "packed-positions";
+	private static final String FIELD_MODIFIED_SLOTS = "modified-slots";
+	private static final String FIELD_ITEM_ID = "item-id";
+	private static final String FIELD_COUNT = "count";
 
-	private static final PlayerPlacedBlockData DATA = new PlayerPlacedBlockData();
+	private static final TrackedPositionData PLAYER_PLACED_BLOCKS = new TrackedPositionData();
+	private static final ModifiedContainerData PLAYER_MODIFIED_CONTAINERS = new ModifiedContainerData();
 	private static final Set<ChunkRefKey> LOADED_CHUNKS = new LinkedHashSet<>();
 	private static final Set<PendingRemoval> PENDING_REMOVALS = new LinkedHashSet<>();
 	private static volatile boolean dirty;
@@ -29,7 +36,7 @@ public final class MadokuChunkDataManager {
 	private static final ChunkAPIManager.ChunkLifecycleListener CHUNK_LISTENER = new ChunkAPIManager.ChunkLifecycleListener() {
 		@Override
 		public void onChunkLoaded(ServerLevel level, int chunkX, int chunkZ) {
-			// Player-placed data is loaded on first query.
+			// Provenance data is loaded on first query.
 		}
 
 		@Override
@@ -54,7 +61,8 @@ public final class MadokuChunkDataManager {
 	}
 
 	public static void reset() {
-		DATA.clear();
+		PLAYER_PLACED_BLOCKS.clear();
+		PLAYER_MODIFIED_CONTAINERS.clear();
 		LOADED_CHUNKS.clear();
 		PENDING_REMOVALS.clear();
 		dirty = false;
@@ -64,7 +72,8 @@ public final class MadokuChunkDataManager {
 	public static void loadPersistedData(MinecraftServer server) {
 		if (server == null) return;
 
-		DATA.clear();
+		PLAYER_PLACED_BLOCKS.clear();
+		PLAYER_MODIFIED_CONTAINERS.clear();
 		LOADED_CHUNKS.clear();
 		PENDING_REMOVALS.clear();
 		dirty = false;
@@ -85,34 +94,60 @@ public final class MadokuChunkDataManager {
 
 	public static void savePersistedData(MinecraftServer server) {
 		if (server == null) return;
-		Set<ChunkRefKey> dirtyChunkKeys = DATA.collectDirtyChunkKeys();
+		Set<ChunkRefKey> dirtyChunkKeys = PLAYER_PLACED_BLOCKS.collectDirtyChunkKeys();
+		dirtyChunkKeys.addAll(PLAYER_MODIFIED_CONTAINERS.collectDirtyChunkKeys());
 		for (ChunkRefKey chunkKey : dirtyChunkKeys) {
-			CompoundTag chunkData = DATA.createChunkPersistedData(chunkKey);
 			WorldChunkDataKey dataKey = new WorldChunkDataKey(
 				chunkKey.levelId(), chunkKey.chunkX(), chunkKey.chunkZ());
-			if (chunkData == null) {
-				WorldChunkDataAPIManager.removeChunkSystemData(dataKey, DATA_SYSTEM_ID);
-			} else {
-				WorldChunkDataAPIManager.setChunkSystemData(dataKey, DATA_SYSTEM_ID, chunkData);
-			}
+			saveChunkSystemData(dataKey, PLAYER_PLACED_BLOCKS_SYSTEM_ID, PLAYER_PLACED_BLOCKS.createChunkPersistedData(chunkKey));
+			saveChunkSystemData(dataKey, PLAYER_MODIFIED_CONTAINERS_SYSTEM_ID, PLAYER_MODIFIED_CONTAINERS.createChunkPersistedData(chunkKey));
 		}
-		DATA.clearDirtyChunkKeys();
+		PLAYER_PLACED_BLOCKS.clearDirtyChunkKeys();
+		PLAYER_MODIFIED_CONTAINERS.clearDirtyChunkKeys();
 		dirty = false;
 	}
 
 	public static void recordPlayerPlacedBlock(ServerLevel level, BlockPos pos) {
 		ensureChunkLoaded(level, pos);
-		if (level != null && pos != null && DATA.record(level, pos)) dirty = true;
+		if (level != null && pos != null && PLAYER_PLACED_BLOCKS.record(level, pos)) dirty = true;
 	}
 
 	public static boolean isPlayerPlacedBlock(ServerLevel level, BlockPos pos) {
 		ensureChunkLoaded(level, pos);
-		return level != null && pos != null && DATA.contains(level, pos);
+		return level != null && pos != null && PLAYER_PLACED_BLOCKS.contains(level, pos);
 	}
 
 	public static void removePlayerPlacedBlock(ServerLevel level, BlockPos pos) {
 		ensureChunkLoaded(level, pos);
-		if (level != null && pos != null && DATA.remove(level, pos)) dirty = true;
+		if (level != null && pos != null && PLAYER_PLACED_BLOCKS.remove(level, pos)) dirty = true;
+	}
+
+	public static void recordPlayerModifiedContainerChange(ServerLevel level, BlockPos pos, int slot, ItemStack before, ItemStack after) {
+		ensureChunkLoaded(level, pos);
+		if (level != null && pos != null && PLAYER_MODIFIED_CONTAINERS.recordChange(level, pos, slot, before, after)) dirty = true;
+	}
+
+	public static boolean isPlayerModifiedContainer(ServerLevel level, BlockPos pos) {
+		ensureChunkLoaded(level, pos);
+		return level != null && pos != null && PLAYER_MODIFIED_CONTAINERS.contains(level, pos);
+	}
+
+	public static boolean isPlayerModifiedContainerSlot(ServerLevel level, BlockPos pos, int slot) {
+		ensureChunkLoaded(level, pos);
+		return level != null && pos != null && PLAYER_MODIFIED_CONTAINERS.containsSlot(level, pos, slot);
+	}
+
+	public static void removePlayerModifiedContainer(ServerLevel level, BlockPos pos) {
+		ensureChunkLoaded(level, pos);
+		if (level != null && pos != null && PLAYER_MODIFIED_CONTAINERS.remove(level, pos)) dirty = true;
+	}
+
+	public static int consumePlayerModifiedContainerItem(ServerLevel level, BlockPos pos, ItemStack stack, int maximum) {
+		ensureChunkLoaded(level, pos);
+		if (level == null || pos == null || stack == null || stack.isEmpty() || maximum <= 0) return 0;
+		int consumed = PLAYER_MODIFIED_CONTAINERS.consume(level, pos, stack, maximum);
+		if (consumed > 0) dirty = true;
+		return consumed;
 	}
 
 	private static void flushPendingRemovals() {
@@ -132,31 +167,43 @@ public final class MadokuChunkDataManager {
 		if (level == null || pos == null) return;
 		ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
 		if (!LOADED_CHUNKS.add(chunkKey)) return;
-		CompoundTag data = WorldChunkDataAPIManager.getChunkSystemData(
+		CompoundTag placedBlockData = WorldChunkDataAPIManager.getChunkSystemData(
 			level,
 			chunkKey.chunkX(),
 			chunkKey.chunkZ(),
-			DATA_SYSTEM_ID);
-		DATA.applyChunkPersistedData(data, chunkKey);
+			PLAYER_PLACED_BLOCKS_SYSTEM_ID);
+		PLAYER_PLACED_BLOCKS.applyChunkPersistedData(placedBlockData, chunkKey);
+		CompoundTag modifiedContainerData = WorldChunkDataAPIManager.getChunkSystemData(
+			level,
+			chunkKey.chunkX(),
+			chunkKey.chunkZ(),
+			PLAYER_MODIFIED_CONTAINERS_SYSTEM_ID);
+		PLAYER_MODIFIED_CONTAINERS.applyChunkPersistedData(modifiedContainerData, chunkKey);
 	}
 
 	private static void releaseChunk(ServerLevel level, int chunkX, int chunkZ) {
 		if (level == null) return;
 		ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), chunkX, chunkZ);
-		if (DATA.isDirty(chunkKey)) {
-			CompoundTag chunkData = DATA.createChunkPersistedData(chunkKey);
+		if (PLAYER_PLACED_BLOCKS.isDirty(chunkKey) || PLAYER_MODIFIED_CONTAINERS.isDirty(chunkKey)) {
 			WorldChunkDataKey dataKey = new WorldChunkDataKey(
 				chunkKey.levelId(), chunkKey.chunkX(), chunkKey.chunkZ());
-			if (chunkData == null) {
-				WorldChunkDataAPIManager.removeChunkSystemData(dataKey, DATA_SYSTEM_ID);
-			} else {
-				WorldChunkDataAPIManager.setChunkSystemData(dataKey, DATA_SYSTEM_ID, chunkData);
-			}
-			DATA.clearDirtyChunkKey(chunkKey);
-			dirty = DATA.hasDirtyChunkKeys();
+			saveChunkSystemData(dataKey, PLAYER_PLACED_BLOCKS_SYSTEM_ID, PLAYER_PLACED_BLOCKS.createChunkPersistedData(chunkKey));
+			saveChunkSystemData(dataKey, PLAYER_MODIFIED_CONTAINERS_SYSTEM_ID, PLAYER_MODIFIED_CONTAINERS.createChunkPersistedData(chunkKey));
+			PLAYER_PLACED_BLOCKS.clearDirtyChunkKey(chunkKey);
+			PLAYER_MODIFIED_CONTAINERS.clearDirtyChunkKey(chunkKey);
+			dirty = PLAYER_PLACED_BLOCKS.hasDirtyChunkKeys() || PLAYER_MODIFIED_CONTAINERS.hasDirtyChunkKeys();
 		}
-		DATA.evictChunk(chunkKey);
+		PLAYER_PLACED_BLOCKS.evictChunk(chunkKey);
+		PLAYER_MODIFIED_CONTAINERS.evictChunk(chunkKey);
 		LOADED_CHUNKS.remove(chunkKey);
+	}
+
+	private static void saveChunkSystemData(WorldChunkDataKey dataKey, String systemId, CompoundTag chunkData) {
+		if (chunkData == null) {
+			WorldChunkDataAPIManager.removeChunkSystemData(dataKey, systemId);
+		} else {
+			WorldChunkDataAPIManager.setChunkSystemData(dataKey, systemId, chunkData);
+		}
 	}
 
 	private static String levelId(ServerLevel level) {
@@ -170,7 +217,7 @@ public final class MadokuChunkDataManager {
 		return (localY << 8) | (localX << 4) | localZ;
 	}
 
-	private static final class PlayerPlacedBlockData {
+	private static final class TrackedPositionData {
 		private final Map<ChunkRefKey, IntOpenHashSet> positionsByChunk = new HashMap<>();
 		private final Set<ChunkRefKey> dirtyChunkKeys = new LinkedHashSet<>();
 
@@ -249,6 +296,163 @@ public final class MadokuChunkDataManager {
 			if (!positions.isEmpty()) positionsByChunk.put(chunkKey, positions);
 		}
 	}
+
+	private static final class ModifiedContainerData {
+		private final Map<ChunkRefKey, Map<Integer, Map<Integer, ModifiedStack>>> stacksByChunk = new HashMap<>();
+		private final Set<ChunkRefKey> dirtyChunkKeys = new LinkedHashSet<>();
+
+		private void clear() {
+			stacksByChunk.clear();
+			dirtyChunkKeys.clear();
+		}
+
+		private boolean recordChange(ServerLevel level, BlockPos pos, int slot, ItemStack before, ItemStack after) {
+			if (slot < 0) return false;
+			String levelId = levelId(level);
+			if (levelId.isBlank()) return false;
+			ChunkRefKey chunkKey = new ChunkRefKey(levelId, pos.getX() >> 4, pos.getZ() >> 4);
+			int packedPosition = packLocalBlockPos(pos);
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.computeIfAbsent(chunkKey, ignored -> new HashMap<>());
+			Map<Integer, ModifiedStack> stacks = containers.computeIfAbsent(packedPosition, ignored -> new HashMap<>());
+			ModifiedStack previous = stacks.get(slot);
+			String beforeItemId = itemId(before);
+			String afterItemId = itemId(after);
+			ModifiedStack replacement = null;
+
+			if (!afterItemId.isBlank()) {
+				boolean sameItem = beforeItemId.equals(afterItemId);
+				boolean removedFromStack = sameItem && count(before) > count(after);
+				if (!removedFromStack || previous != null) {
+					replacement = new ModifiedStack(afterItemId, count(after));
+				}
+			}
+
+			if (sameModifiedStack(previous, replacement)) return false;
+			if (replacement == null) stacks.remove(slot);
+			else stacks.put(slot, replacement);
+			if (stacks.isEmpty()) containers.remove(packedPosition);
+			if (containers.isEmpty()) stacksByChunk.remove(chunkKey);
+			dirtyChunkKeys.add(chunkKey);
+			return true;
+		}
+
+		private boolean contains(ServerLevel level, BlockPos pos) {
+			ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.get(chunkKey);
+			Map<Integer, ModifiedStack> stacks = containers == null ? null : containers.get(packLocalBlockPos(pos));
+			return stacks != null && !stacks.isEmpty();
+		}
+
+		private boolean containsSlot(ServerLevel level, BlockPos pos, int slot) {
+			if (slot < 0) return false;
+			ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.get(chunkKey);
+			Map<Integer, ModifiedStack> stacks = containers == null ? null : containers.get(packLocalBlockPos(pos));
+			return stacks != null && stacks.containsKey(slot);
+		}
+
+		private boolean remove(ServerLevel level, BlockPos pos) {
+			ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.get(chunkKey);
+			if (containers == null || containers.remove(packLocalBlockPos(pos)) == null) return false;
+			if (containers.isEmpty()) stacksByChunk.remove(chunkKey);
+			dirtyChunkKeys.add(chunkKey);
+			return true;
+		}
+
+		private int consume(ServerLevel level, BlockPos pos, ItemStack stack, int maximum) {
+			ChunkRefKey chunkKey = new ChunkRefKey(levelId(level), pos.getX() >> 4, pos.getZ() >> 4);
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.get(chunkKey);
+			Map<Integer, ModifiedStack> stacks = containers == null ? null : containers.get(packLocalBlockPos(pos));
+			if (stacks == null) return 0;
+			String itemId = itemId(stack);
+			int remaining = maximum;
+			int consumed = 0;
+			var iterator = stacks.entrySet().iterator();
+			while (iterator.hasNext() && remaining > 0) {
+				Map.Entry<Integer, ModifiedStack> entry = iterator.next();
+				if (!entry.getValue().itemId().equals(itemId)) continue;
+				ModifiedStack modifiedStack = entry.getValue();
+				int amount = Math.min(remaining, modifiedStack.count());
+				remaining -= amount;
+				consumed += amount;
+				int left = modifiedStack.count() - amount;
+				if (left <= 0) iterator.remove();
+				else entry.setValue(new ModifiedStack(modifiedStack.itemId(), left));
+			}
+			if (consumed > 0) {
+				if (stacks.isEmpty()) {
+					containers.remove(packLocalBlockPos(pos));
+					if (containers.isEmpty()) stacksByChunk.remove(chunkKey);
+				}
+				dirtyChunkKeys.add(chunkKey);
+			}
+			return consumed;
+		}
+
+		private Set<ChunkRefKey> collectDirtyChunkKeys() { return new LinkedHashSet<>(dirtyChunkKeys); }
+		private void clearDirtyChunkKeys() { dirtyChunkKeys.clear(); }
+		private boolean isDirty(ChunkRefKey chunkKey) { return dirtyChunkKeys.contains(chunkKey); }
+		private void clearDirtyChunkKey(ChunkRefKey chunkKey) { dirtyChunkKeys.remove(chunkKey); }
+		private boolean hasDirtyChunkKeys() { return !dirtyChunkKeys.isEmpty(); }
+		private void evictChunk(ChunkRefKey chunkKey) { stacksByChunk.remove(chunkKey); }
+
+		private CompoundTag createChunkPersistedData(ChunkRefKey chunkKey) {
+			Map<Integer, Map<Integer, ModifiedStack>> containers = stacksByChunk.get(chunkKey);
+			if (containers == null || containers.isEmpty()) return null;
+			CompoundTag data = new CompoundTag();
+			CompoundTag modifiedSlots = new CompoundTag();
+			for (Map.Entry<Integer, Map<Integer, ModifiedStack>> container : containers.entrySet()) {
+				for (Map.Entry<Integer, ModifiedStack> entry : container.getValue().entrySet()) {
+					long packedSlot = ((long) container.getKey() << 8) | (entry.getKey() & 0xFFL);
+					CompoundTag modifiedStack = new CompoundTag();
+					modifiedStack.putString(FIELD_ITEM_ID, entry.getValue().itemId());
+					modifiedStack.putInt(FIELD_COUNT, entry.getValue().count());
+					modifiedSlots.put(Long.toString(packedSlot), modifiedStack);
+				}
+			}
+			data.put(FIELD_MODIFIED_SLOTS, modifiedSlots);
+			return data;
+		}
+
+		private void applyChunkPersistedData(CompoundTag source, ChunkRefKey chunkKey) {
+			if (chunkKey == null || source == null || source.isEmpty()) return;
+			CompoundTag modifiedSlots = source.getCompoundOrEmpty(FIELD_MODIFIED_SLOTS);
+			if (modifiedSlots.isEmpty()) return;
+			Map<Integer, Map<Integer, ModifiedStack>> containers = new HashMap<>();
+			for (String key : modifiedSlots.keySet()) {
+				try {
+					long packedSlot = Long.parseLong(key);
+					int packedPosition = (int) (packedSlot >>> 8);
+					int slot = (int) (packedSlot & 0xFFL);
+					CompoundTag modifiedStack = modifiedSlots.getCompoundOrEmpty(key);
+					String itemId = modifiedStack.getStringOr(FIELD_ITEM_ID, "");
+					int count = modifiedStack.getIntOr(FIELD_COUNT, 0);
+					if (!itemId.isBlank() && count > 0) {
+						containers.computeIfAbsent(packedPosition, ignored -> new HashMap<>())
+							.put(slot, new ModifiedStack(itemId, count));
+					}
+				} catch (NumberFormatException ignored) {
+					// Ignore malformed provenance entries.
+				}
+			}
+			if (!containers.isEmpty()) {
+				stacksByChunk.put(chunkKey, containers);
+			}
+		}
+
+		private static String itemId(ItemStack stack) {
+			return stack == null || stack.isEmpty() ? "" : BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+		}
+
+		private static int count(ItemStack stack) { return stack == null || stack.isEmpty() ? 0 : stack.getCount(); }
+
+		private static boolean sameModifiedStack(ModifiedStack left, ModifiedStack right) {
+			return left == right || left != null && left.equals(right);
+		}
+	}
+
+	private record ModifiedStack(String itemId, int count) { }
 
 	private record ChunkRefKey(String levelId, int chunkX, int chunkZ) { }
 	private record PendingRemoval(ServerLevel level, BlockPos pos) { }

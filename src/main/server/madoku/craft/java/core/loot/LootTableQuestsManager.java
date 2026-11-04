@@ -44,6 +44,10 @@ public final class LootTableQuestsManager {
 	}
 
 	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) {
+		return generateManagedLootForTable(tableId, random, 1.0d);
+	}
+
+	public static List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random, double rewardMultiplier) {
 		reloadIfNeeded(null);
 		if (!settingsEnabled) {
 			return List.of();
@@ -58,7 +62,8 @@ public final class LootTableQuestsManager {
 			? List.of()
 			: LootTableAPIManager.rollSharedTable(
 				table,
-				random == null ? RandomSource.create() : random
+				random == null ? RandomSource.create() : random,
+				rewardMultiplier
 			);
 	}
 

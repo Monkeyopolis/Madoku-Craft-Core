@@ -3,11 +3,14 @@ package madoku.craft.java.core.helper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 /** Built-in provider backed by the Madoku block-drop context implementation. */
 public final class MadokuBlockDropContextProvider implements BlockDropContextProvider {
 	@Override public void begin(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state) { MadokuBlockDropContextManager.begin(level, player, pos, state); }
+	@Override public void begin(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, BlockEntity blockEntity) { MadokuBlockDropContextManager.begin(level, player, pos, state, blockEntity); }
 	@Override public void end() { MadokuBlockDropContextManager.end(); }
 	@Override public BlockDropContextAPIManager.Context current() {
 		MadokuBlockDropContextManager.Context context = MadokuBlockDropContextManager.current();
@@ -15,4 +18,7 @@ public final class MadokuBlockDropContextProvider implements BlockDropContextPro
 	}
 	@Override public ServerPlayer resolvePlayer() { return MadokuBlockDropContextManager.resolvePlayer(); }
 	@Override public boolean isActiveDropPlayerPlacedBlock() { return MadokuBlockDropContextManager.isActiveDropPlayerPlacedBlock(); }
+	@Override public boolean isActiveDropContainer() { return MadokuBlockDropContextManager.isActiveDropContainer(); }
+	@Override public boolean isActiveDropPlayerModifiedContainer() { return MadokuBlockDropContextManager.isActiveDropPlayerModifiedContainer(); }
+	@Override public int consumeActiveDropPlayerModifiedContainerAmount(ItemStack stack) { return MadokuBlockDropContextManager.consumeActiveDropPlayerModifiedContainerAmount(stack); }
 }

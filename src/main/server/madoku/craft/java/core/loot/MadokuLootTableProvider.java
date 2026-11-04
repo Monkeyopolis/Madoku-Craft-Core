@@ -18,4 +18,5 @@ public final class MadokuLootTableProvider implements LootTableProvider {
 	@Override public boolean applyManagedLootTable(Container container, ResourceKey<LootTable> lootTableKey, long lootTableSeed, ServerLevel level, ServerPlayer player) { return MadokuLootTableManager.applyManagedLootTable(container, lootTableKey, lootTableSeed, level, player); }
 	@Override public List<ItemStack> generateManagedLootForContext(LootContext lootContext) { return MadokuLootTableManager.generateManagedLootForContext(lootContext); }
 	@Override public List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) { return MadokuLootTableManager.generateManagedLootForTable(tableId, random); }
+	@Override public List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random, double rewardMultiplier) { return MadokuLootTableManager.generateManagedLootForTable(tableId, random, rewardMultiplier); }
 }

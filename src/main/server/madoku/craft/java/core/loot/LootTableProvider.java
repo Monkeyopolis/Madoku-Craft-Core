@@ -18,4 +18,7 @@ public interface LootTableProvider {
 	default boolean applyManagedLootTable(Container container, ResourceKey<LootTable> lootTableKey, long lootTableSeed, ServerLevel level, ServerPlayer player) { return false; }
 	default List<ItemStack> generateManagedLootForContext(LootContext lootContext) { return List.of(); }
 	default List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random) { return List.of(); }
+	default List<ItemStack> generateManagedLootForTable(String tableId, RandomSource random, double rewardMultiplier) {
+		return generateManagedLootForTable(tableId, random);
+	}
 }
