@@ -10,6 +10,7 @@
     "core.BaseContainerBlockEntityModificationMixin",
     "core.BlockItemPlacedBlockTrackingMixin",
     "core.BlockPlayerDestroyDropContextMixin",
+    "core.BucketItemPlacedBlockTrackingMixin",
     "core.ContainerEntityLootMixin",
     "core.CraftingMenuRarityMixin",
     "core.EnchantmentConfigurationMixin",

@@ -14,7 +14,7 @@ public final class QuestLootTablesConfigManager {
 		Map<String, JsonObject> defaults = new LinkedHashMap<>();
 		put(defaults, "quest-easy-difficulty", 0, 2);
 		put(defaults, "quest-normal-difficulty", 1, 3);
-		put(defaults, "quest-hard-difficulty", 3, 5);
+		put(defaults, "quest-hard-difficulty", 2, 4);
 		return defaults;
 	}
 

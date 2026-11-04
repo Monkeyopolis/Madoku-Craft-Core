@@ -35,6 +35,16 @@ public abstract class ItemEntityDropTrackingMixin implements ItemEntityDropAcces
 	private boolean madokuCraft$playerModifiedContainerDrop;
 	@Unique
 	private int madokuCraft$playerAttributedCount;
+	@Unique
+	private ItemEntity madokuCraft$mergeOther;
+	@Unique
+	private int madokuCraft$mergeThisInitialCount;
+	@Unique
+	private int madokuCraft$mergeOtherInitialCount;
+	@Unique
+	private int madokuCraft$mergeThisInitialAttributedCount;
+	@Unique
+	private int madokuCraft$mergeOtherInitialAttributedCount;
 
 	@Inject(method = "<init>(Lnet/minecraft/world/level/Level;DDDLnet/minecraft/world/item/ItemStack;)V", at = @At("RETURN"))
 	private void madokuCraft$markBlockDropProvenance(
@@ -74,9 +84,8 @@ public abstract class ItemEntityDropTrackingMixin implements ItemEntityDropAcces
 		if (madokuCraft$playerAttributedCount > 0) return;
 		BlockDropContextAPIManager.Context context = BlockDropContextAPIManager.current();
 		boolean activePlayerPlacedBlock = BlockDropContextAPIManager.isActiveDropPlayerPlacedBlock();
-		boolean activeContainer = BlockDropContextAPIManager.isActiveDropContainer();
-		boolean isContainerBlockItem = context != null && stack.is(context.state().getBlock().asItem());
-		if (activePlayerPlacedBlock && (!activeContainer || isContainerBlockItem)) {
+		boolean isSourceBlockItem = context != null && stack.is(context.state().getBlock().asItem());
+		if (activePlayerPlacedBlock && isSourceBlockItem) {
 			madokuCraft$playerPlacedBlockDrop = true;
 			madokuCraft$playerAttributedCount = stack.getCount();
 			return;
@@ -97,24 +106,103 @@ public abstract class ItemEntityDropTrackingMixin implements ItemEntityDropAcces
 	}
 
 	@Inject(method = "tryToMerge(Lnet/minecraft/world/entity/item/ItemEntity;)V", at = @At("HEAD"))
-	private void madokuCraft$propagateProvenance(ItemEntity other, CallbackInfo ci) {
-		if (!(other instanceof ItemEntityDropAccess otherAccess)) return;
-		int currentAttributedCount = madokuCraft$playerAttributedCount;
-		int otherAttributedCount = otherAccess.madokuCraft$getPlayerAttributedCount();
+	private void madokuCraft$beginMergeTracking(ItemEntity other, CallbackInfo ci) {
+		if (!(other instanceof ItemEntityDropAccess otherAccess)) {
+			madokuCraft$clearMergeTracking();
+			return;
+		}
+		madokuCraft$mergeOther = other;
+		madokuCraft$mergeThisInitialCount = ((ItemEntity) (Object) this).getItem().getCount();
+		madokuCraft$mergeOtherInitialCount = other.getItem().getCount();
+		madokuCraft$mergeThisInitialAttributedCount = Math.min(
+			madokuCraft$mergeThisInitialCount,
+			Math.max(0, madokuCraft$playerAttributedCount)
+		);
+		madokuCraft$mergeOtherInitialAttributedCount = Math.min(
+			madokuCraft$mergeOtherInitialCount,
+			Math.max(0, otherAccess.madokuCraft$getPlayerAttributedCount())
+		);
+	}
 
-		boolean playerDropped = madokuCraft$playerDropped || otherAccess.madokuCraft$isPlayerDropped();
-		boolean playerPlacedBlockDrop = madokuCraft$playerPlacedBlockDrop || otherAccess.madokuCraft$isPlayerPlacedBlockDrop();
-		boolean playerModifiedContainerDrop = madokuCraft$playerModifiedContainerDrop
-			|| otherAccess.madokuCraft$isPlayerModifiedContainerDrop();
-		int playerAttributedCount = currentAttributedCount + otherAttributedCount;
-		madokuCraft$playerDropped = playerDropped;
-		madokuCraft$playerPlacedBlockDrop = playerPlacedBlockDrop;
-		madokuCraft$playerModifiedContainerDrop = playerModifiedContainerDrop;
-		madokuCraft$playerAttributedCount = playerAttributedCount;
-		otherAccess.madokuCraft$setPlayerDropped(playerDropped);
-		otherAccess.madokuCraft$setPlayerPlacedBlockDrop(playerPlacedBlockDrop);
-		otherAccess.madokuCraft$setPlayerModifiedContainerDrop(playerModifiedContainerDrop);
-		otherAccess.madokuCraft$setPlayerAttributedCount(playerAttributedCount);
+	@Inject(method = "tryToMerge(Lnet/minecraft/world/entity/item/ItemEntity;)V", at = @At("RETURN"))
+	private void madokuCraft$finishMergeTracking(ItemEntity other, CallbackInfo ci) {
+		if (madokuCraft$mergeOther != other) return;
+		try {
+			ItemEntity thisEntity = (ItemEntity) (Object) this;
+			if (!(other instanceof ItemEntityDropAccess otherAccess)) return;
+			ItemEntityDropAccess thisAccess = (ItemEntityDropAccess) (Object) thisEntity;
+			int thisFinalCount = thisEntity.getItem().getCount();
+			int otherFinalCount = other.getItem().getCount();
+			int movedToThis = Math.max(0, thisFinalCount - madokuCraft$mergeThisInitialCount);
+			int movedFromThis = Math.max(0, madokuCraft$mergeThisInitialCount - thisFinalCount);
+			int movedToOther = Math.max(0, otherFinalCount - madokuCraft$mergeOtherInitialCount);
+			int movedFromOther = Math.max(0, madokuCraft$mergeOtherInitialCount - otherFinalCount);
+
+			if (movedToThis > 0 && movedFromOther > 0) {
+				madokuCraft$applyMergeAttribution(
+					otherAccess,
+					thisAccess,
+					madokuCraft$mergeOtherInitialAttributedCount,
+					madokuCraft$mergeThisInitialAttributedCount,
+					otherFinalCount,
+					thisFinalCount
+				);
+			} else if (movedToOther > 0 && movedFromThis > 0) {
+				madokuCraft$applyMergeAttribution(
+					thisAccess,
+					otherAccess,
+					madokuCraft$mergeThisInitialAttributedCount,
+					madokuCraft$mergeOtherInitialAttributedCount,
+					thisFinalCount,
+					otherFinalCount
+				);
+			}
+		} finally {
+			madokuCraft$clearMergeTracking();
+		}
+	}
+
+	@Unique
+	private static void madokuCraft$applyMergeAttribution(
+		ItemEntityDropAccess source,
+		ItemEntityDropAccess destination,
+		int sourceInitialAttributedCount,
+		int destinationInitialAttributedCount,
+		int sourceFinalCount,
+		int destinationFinalCount
+	) {
+		boolean sourceTainted = sourceInitialAttributedCount > 0;
+		boolean destinationTainted = destinationInitialAttributedCount > 0;
+		boolean mergedTainted = sourceTainted || destinationTainted;
+
+		source.madokuCraft$setPlayerAttributedCount(sourceTainted ? sourceFinalCount : 0);
+		destination.madokuCraft$setPlayerAttributedCount(mergedTainted ? destinationFinalCount : 0);
+		if (mergedTainted) {
+			destination.madokuCraft$setPlayerDropped(
+				destination.madokuCraft$isPlayerDropped() || source.madokuCraft$isPlayerDropped()
+			);
+			destination.madokuCraft$setPlayerPlacedBlockDrop(
+				destination.madokuCraft$isPlayerPlacedBlockDrop() || source.madokuCraft$isPlayerPlacedBlockDrop()
+			);
+			destination.madokuCraft$setPlayerModifiedContainerDrop(
+				destination.madokuCraft$isPlayerModifiedContainerDrop()
+					|| source.madokuCraft$isPlayerModifiedContainerDrop()
+			);
+		}
+		if (!sourceTainted) {
+			source.madokuCraft$setPlayerDropped(false);
+			source.madokuCraft$setPlayerPlacedBlockDrop(false);
+			source.madokuCraft$setPlayerModifiedContainerDrop(false);
+		}
+	}
+
+	@Unique
+	private void madokuCraft$clearMergeTracking() {
+		madokuCraft$mergeOther = null;
+		madokuCraft$mergeThisInitialCount = 0;
+		madokuCraft$mergeOtherInitialCount = 0;
+		madokuCraft$mergeThisInitialAttributedCount = 0;
+		madokuCraft$mergeOtherInitialAttributedCount = 0;
 	}
 
 	@Inject(method = "addAdditionalSaveData", at = @At("RETURN"))
